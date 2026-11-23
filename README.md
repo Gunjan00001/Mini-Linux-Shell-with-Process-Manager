@@ -1,109 +1,276 @@
 # Mini Linux Shell with Process Manager
 
-A custom Linux shell written in C++17 that builds its own pipeline of POSIX
-calls instead of delegating to bash: `fork()`, `execvp()`, `waitpid()`,
-`pipe()`, `dup2()`, `sigaction()`, `setpgid()`/`tcsetpgrp()`, and the Linux
-`/proc` filesystem.
+[![CI](https://github.com/Gunjan00001/Mini-Linux-Shell-with-Process-Manager/actions/workflows/ci.yml/badge.svg)](https://github.com/Gunjan00001/Mini-Linux-Shell-with-Process-Manager/actions/workflows/ci.yml)
 
-It is a usability subset of bash, with the parts that matter for an OS course
-implemented from scratch: process creation, job control, redirection, pipelines,
-signal handling and process monitoring.
+A small Linux shell written in C++17 that implements the interesting parts of a
+shell itself: `fork`, `execvp`, `waitpid`, pipes, `dup2` redirection, terminal
+job control with process groups, `SIGCHLD` reaping through a self-pipe, and a
+process monitor that reads the Linux `/proc` filesystem.
+
+It is a teaching-grade shell, not a bash replacement. The goal is to show every
+mechanism instead of hiding it behind a library.
+
+```text
+gunjan@minishell:~$ ls | grep txt
+notes.txt
+gunjan@minishell:~$ sleep 30 &
+[1] Started  sleep 30  PID: 4210
+gunjan@minishell:~$ jobs
+[1] Running  sleep 30  PID: 4210
+gunjan@minishell:~$ monitor --pid 4210
+========== PROCESS INFO: 4210 ==========
+PID:        4210
+PPID:       4000
+State:      S
+Threads:    1
+CPU time:   0.02 s (user 0.00 s)
+CPU now:    0.0 % (200 ms sample)
+Virtual:    2.3 MB
+Resident:   1.1 MB
+Name:       sleep
+Cmdline:    sleep 30
+```
 
 ## Features
 
 | Area | What works |
 |---|---|
-| Execution | external programs via `execvp`, multiple arguments, quoted arguments |
+| Execution | external programs via `execvp`, argument list, single/double quotes |
 | Builtins | `cd`, `pwd`, `exit`, `jobs`, `history`, `kill`, `fg`, `bg`, `ps`, `pinfo`, `monitor`, `help` |
-| Pipelines | `a | b | c` (any number of stages), all stages waited for |
-| Redirection | `< in`, `> out`, `>> out` |
-| Background | `cmd &`, job ids, `jobs`, completion notices at the prompt |
-| History | `history`, `!N` recall of entry N |
-| Job control | own process groups, terminal handoff (`tcsetpgrp`), Ctrl+C / Ctrl+Z, `fg` / `bg` |
-| Signals | `SIGCHLD` via self-pipe, shell survives Ctrl+C, children reaped |
-| Monitoring | `monitor`, `monitor --pid N`, `ps`, `pinfo N` reading `/proc/[pid]/stat`, `cmdline`, `meminfo`, `uptime` |
+| Pipelines | any number of stages: `a \| b \| c` |
+| Redirection | `< input`, `> output`, `>> output` |
+| Background | `command &`, job ids, `[n] Done` notices at the prompt |
+| Job control | per-job process groups, terminal handoff (`tcsetpgrp`), Ctrl+C, Ctrl+Z, `fg`, `bg` |
+| Signals | `SIGCHLD` via self-pipe, the shell survives Ctrl+C, children are reaped |
+| Monitoring | `monitor`, `monitor --pid N`, `ps`, `pinfo N` from `/proc/[pid]/stat`, `/proc/[pid]/cmdline`, `/proc/meminfo`, `/proc/uptime` |
+| History | `history`, `!N` to re-run entry N |
 
-## Build
+## Requirements
 
-Linux or WSL2 (Ubuntu 22.04/24.04). From the project root:
+- **Linux** (Ubuntu 22.04+, Debian 12+, Fedora, Arch — any modern distro).
+- A C++17 compiler (`g++` 9+ or `clang++` 10+), CMake 3.16+, and `git`.
+- Windows: run everything inside **WSL2** — the shell needs Linux system calls.
+  PowerShell:
+  ```powershell
+  wsl --install -d Ubuntu
+  ```
+  Then open Ubuntu and follow the Linux instructions.
+- macOS: **not supported** (no `fork`/`waitpid`/`/proc` semantics). Use a VM,
+  container, or remote Linux box.
+
+## Install
+
+### Option A — one command (recommended)
 
 ```bash
-cmake -S . -B build
+curl -fsSL https://raw.githubusercontent.com/Gunjan00001/Mini-Linux-Shell-with-Process-Manager/main/install.sh | bash
+```
+
+The script clones into `~/.local/src/mini-linux-shell`, builds it, and installs
+`~/.local/bin/minishell`. No `sudo`, nothing outside your home directory.
+Afterwards, add `~/.local/bin` to `PATH` if the script tells you to, then:
+
+```bash
+minishell
+```
+
+`wget` works the same way:
+
+```bash
+wget -qO- https://raw.githubusercontent.com/Gunjan00001/Mini-Linux-Shell-with-Process-Manager/main/install.sh | bash
+```
+
+### Option B — prebuilt binary
+
+Download `minishell-linux-x86_64` from
+[Releases](https://github.com/Gunjan00001/Mini-Linux-Shell-with-Process-Manager/releases),
+then:
+
+```bash
+curl -fL -o minishell \
+  https://github.com/Gunjan00001/Mini-Linux-Shell-with-Process-Manager/releases/latest/download/minishell-linux-x86_64
+chmod +x minishell
+mv minishell ~/.local/bin/    # or anywhere on your PATH
+minishell
+```
+
+### Option C — build from source
+
+```bash
+git clone https://github.com/Gunjan00001/Mini-Linux-Shell-with-Process-Manager.git
+cd Mini-Linux-Shell-with-Process-Manager
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 ./build/minishell
 ```
 
-## Usage
+### Uninstall
 
-```text
-$ pwd
-/mnt/d/OS project
-$ echo "Hello World"
-Hello World
-$ ls | grep CMake
-CMakeLists.txt
-$ ls > files.txt
-$ cat < files.txt
-$ echo another >> files.txt
-$ sleep 30 &
-[1] Started  sleep 30 &  PID: 4210
-$ jobs
-[1] Running  sleep 30 &  PID: 4210
-$ kill %1
-$ monitor --pid 4210
-$ pinfo 1
+```bash
+curl -fsSL https://raw.githubusercontent.com/Gunjan00001/Mini-Linux-Shell-with-Process-Manager/main/install.sh | bash -s -- --uninstall
 ```
 
-Ctrl+C interrupts the foreground job without killing the shell. Ctrl+Z stops
-it; `jobs` shows it as `Stopped`; `bg 1` resumes it in the background and
-`fg 1` brings it back to the terminal.
+That removes `~/.local/bin/minishell` and `~/.local/src/mini-linux-shell`.
+For a manual checkout, `rm -rf` the clone.
 
-Type `help` inside the shell for the builtin list, and `exit` to leave.
+> **Why not npm / pip / brew?** This is a compiled Linux binary using POSIX
+> system calls directly, not a script or a library in those ecosystems. A
+> package manager entry would add nothing over the one-liner above. See
+> [docs/faq.md](docs/faq.md).
+
+## Quick start (first 60 seconds)
+
+```bash
+minishell            # start it
+pwd                  # where am I
+ls | head -5         # a pipeline
+echo hi > /tmp/x     # redirection
+cat < /tmp/x
+sleep 30 &           # background job
+jobs                 # see it
+monitor --pid $$     # detailed /proc view of this shell
+help                 # list builtins
+exit
+```
+
+## Usage
+
+### Command lines
+
+| Syntax | Meaning | Example |
+|---|---|---|
+| `cmd arg arg` | run a program | `ls -la /tmp` |
+| `"..."` / `'...'` | one argument, spaces included | `echo "Hello World"` |
+| `a \| b \| c` | pipelines, stdout to stdin | `ls \| grep txt \| wc -l` |
+| `cmd < file` | stdin from file | `sort < names.txt` |
+| `cmd > file` | stdout to file, truncate | `ls > list.txt` |
+| `cmd >> file` | stdout to file, append | `echo done >> list.txt` |
+| `cmd &` | background job | `sleep 300 &` |
+| `!N` | re-run history entry N | `history` then `!3` |
+
+One line runs one command (plus its pipeline). `;`, `&&`, `||`, globbing and
+variable expansion are not implemented — see Limitations.
+
+### Builtins
+
+| Command | What it does | Example |
+|---|---|---|
+| `cd [dir]` | change directory; no argument goes to `$HOME` | `cd /tmp` |
+| `pwd` | print the working directory | `pwd` |
+| `exit` | leave the shell (background jobs get `SIGHUP`) | `exit` |
+| `jobs` | list background and stopped jobs | `jobs` |
+| `history` | numbered command history for this session | `history` |
+| `kill <pid\|%job> [sig]` | send a signal, default `SIGTERM` | `kill 4210`, `kill %1`, `kill %1 KILL` |
+| `fg <id>` | resume job in the foreground, hand it the terminal | `fg 1` |
+| `bg <id>` | resume job in the background | `bg 1` |
+| `ps` | processes created by this shell (children) | `ps` |
+| `pinfo <pid>` | detailed `/proc` information for one process | `pinfo 1` |
+| `monitor` | whole-system process table with memory summary | `monitor` |
+| `monitor --pid N` | same detail view as `pinfo` | `monitor --pid $$` |
+| `help` | builtin list | `help` |
+
+### Job control
+
+```text
+sleep 300        then press Ctrl+Z   -> [1] Stopped  sleep 300  PID: 4210
+jobs                                  -> [1] Stopped  sleep 300  PID: 4210
+bg 1                                  -> resumes in the background
+jobs                                  -> [1] Running  sleep 300  PID: 4210
+fg 1                                  -> brings it back; Ctrl+C stops it
+```
+
+Ctrl+C interrupts only the foreground job; the shell stays alive. Ctrl+Z stops
+it and `jobs` shows it as `Stopped`. This needs a real terminal: when stdin is a
+pipe the shell deliberately skips terminal job control.
+
+### Monitoring
+
+- `monitor` shows every process you may read: PID, PPID, state, threads, RSS and
+  command name, plus a memory/uptime header.
+- `pinfo <pid>` and `monitor --pid <pid>` show state, threads, cumulative CPU
+  time, a 200 ms sampled CPU percentage, virtual and resident memory, and the
+  full command line.
+
+## How it works
+
+```text
+prompt -> parser -> executor -> fork/execvp -> kernel -> /proc -> monitor
+                        |
+                     jobs, pipes, dup2, signals, tty ownership
+```
+
+- The parser is a pure function (`ParsedLine`), so it is unit tested without a
+  terminal.
+- The `SIGCHLD` handler only writes a byte to a self-pipe; the main loop reaps
+  with `waitpid(-1, WNOHANG | WUNTRACED | WCONTINUED)`.
+- Each job gets its own process group; the terminal is handed over with
+  `tcsetpgrp` so Ctrl+C/Ctrl+Z reach the job, not the shell.
+- `/proc/[pid]/stat` is parsed after the last `)`, so names with spaces and
+  parentheses are safe.
+
+Details: [docs/architecture.md](docs/architecture.md) and
+[docs/system_calls.md](docs/system_calls.md).
 
 ## Tests
 
 ```bash
-./build/parser_tests        # parser: quoting, pipes, redirection, errors
-./build/monitor_tests       # /proc parser: fixtures + the live process
-python3 tests/pty_smoke.py  # Ctrl+C, Ctrl+Z, jobs, bg, fg through a pty
+cmake --build build -j
+ctest --test-dir build --output-on-failure   # parser + /proc unit tests
+python3 tests/pty_smoke.py                   # Ctrl+C, Ctrl+Z, jobs, bg, fg
 ```
 
-The behavioral checklist and recorded results live in
+CI runs the build and unit tests on every push
+([workflow](.github/workflows/ci.yml)). Behavioral results are recorded in
 [docs/test_cases.md](docs/test_cases.md).
 
-## Layout
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `minishell: command not found` after install | `~/.local/bin` not on `PATH` | add `export PATH="$HOME/.local/bin:$PATH"` to `~/.bashrc`, reopen terminal |
+| `CMake 3.16 or higher is required` | old distro CMake | `pip install --user cmake` or use Option B (binary) |
+| `missing dependency: cmake` from installer | toolchain not installed | `sudo apt update && sudo apt install -y build-essential cmake git` |
+| Installer says `not supported` on Windows | ran in PowerShell/cmd instead of WSL | `wsl --install -d Ubuntu`, then run the command inside Ubuntu |
+| `minishell: abcxyz: No such file or directory` | the program does not exist | expected; that message comes from the child after a failed `execvp` |
+| Ctrl+Z does nothing | stdin is not a terminal (pipe, IDE runner, `ssh` without `-t`) | run in a real terminal window |
+| `execvp` works but `ls` shows nothing for `ls > f` | that is correct: output went to `f` | `cat < f` |
+| `kill: invalid target` | pid does not exist or `%job` is wrong | `jobs` to see ids, `ps` to see pids |
+| `monitor` skips some processes | permissions / `/proc` hardening | expected; the monitor shows what you may read |
+
+## Project layout
 
 ```text
 src/
-  main.cpp
-  shell/      prompt + select-driven line reader
-  parser/     pure tokenizer/parser -> ParsedLine
-  executor/   builtins + fork/exec pipeline runner
-  process/    job table, terminal job control
-  ipc/        input/output/append redirection
-  signals/    self-pipe SIGCHLD/SIGINT handler
-  monitor/    /proc reader and report commands
-  history/    in-memory command history
-tests/        parser tests, monitor tests, pty smoke test
-docs/         architecture, system calls, test cases
+  main.cpp              entry point
+  shell/                prompt, select-driven line reader
+  parser/               pure tokenizer/parser -> ParsedLine
+  executor/             builtins and fork/exec pipeline runner
+  process/              job table, terminal job control
+  ipc/                  input/output/append redirection
+  signals/              self-pipe SIGCHLD/SIGINT handling
+  monitor/              /proc reader and report commands
+  history/              in-memory command history
+tests/                  parser tests, /proc tests, pty smoke test
+docs/                   architecture, system calls, test cases, viva, FAQ
+install.sh              one-line installer
 ```
 
 ## Limitations
 
-- No line editing library: no arrow keys, tab completion, or persistent history.
-- No environment variable expansion, globbing, `&&`, `||`, `;`, or subshells.
-- Background job output can interleave with the prompt (no redraw).
-- `monitor` lists cumulative CPU time; `pinfo` adds a 200 ms two-sample CPU
-  percentage.
-- Job control requires a real terminal. With piped stdin the shell falls back to
-  shared process groups and terminal signals behave like a non-interactive
-  shell.
-- Linux/WSL only, by design.
+- No line editing: arrow keys, tab completion and persistent history are absent.
+- No globbing (`*.txt`), environment expansion, `;`, `&&`, `||` or subshells.
+- Background output can interleave with the prompt (no redraw).
+- `monitor`'s table shows cumulative CPU time; `pinfo` adds the sampled rate.
+- Job control requires a tty; piped stdin falls back to a non-interactive shell.
+- Linux only, by design.
 
 ## Documentation
 
 - [Architecture](docs/architecture.md)
 - [System calls used](docs/system_calls.md)
 - [Test cases and results](docs/test_cases.md)
+- [Viva questions and answers](docs/viva_qa.md)
+- [FAQ](docs/faq.md)
+- [Demo recording script](docs/demo_script.md)
 - [Development rules](RULES.md)
 - [Work log](LOGS.md)
