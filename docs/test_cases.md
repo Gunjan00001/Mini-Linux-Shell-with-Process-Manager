@@ -45,6 +45,8 @@ pipe commands into the same binary.
 | Dangling pipe | `ls \|` | PASS, `syntax error near '|'` |
 | Redirection without file | `ls >` | PASS, `missing filename after '>'` |
 | `&` mid-line | `sleep 1 & echo hi` | PASS, rejected with clear message |
+| History recall | `echo first`, `!1` | PASS, entry re-executed and echoed |
+| Missing history entry | `!99` | PASS, `!99: event not found` |
 
 ## Automated tests
 

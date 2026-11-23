@@ -18,6 +18,7 @@ signal handling and process monitoring.
 | Pipelines | `a | b | c` (any number of stages), all stages waited for |
 | Redirection | `< in`, `> out`, `>> out` |
 | Background | `cmd &`, job ids, `jobs`, completion notices at the prompt |
+| History | `history`, `!N` recall of entry N |
 | Job control | own process groups, terminal handoff (`tcsetpgrp`), Ctrl+C / Ctrl+Z, `fg` / `bg` |
 | Signals | `SIGCHLD` via self-pipe, shell survives Ctrl+C, children reaped |
 | Monitoring | `monitor`, `monitor --pid N`, `ps`, `pinfo N` reading `/proc/[pid]/stat`, `cmdline`, `meminfo`, `uptime` |
