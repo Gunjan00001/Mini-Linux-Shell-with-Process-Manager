@@ -14,3 +14,8 @@ void History::print() const {
         std::cout << (i + 1) << "  " << items_[i] << "\n";
     }
 }
+
+const std::string* History::at(size_t index_1based) const {
+    if (index_1based == 0 || index_1based > items_.size()) return nullptr;
+    return &items_[index_1based - 1];
+}

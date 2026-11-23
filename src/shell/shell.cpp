@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cerrno>
+#include <cctype>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -23,6 +24,21 @@ void Shell::run() {
         std::string line;
         if (!read_line(line)) break;
         if (line.empty()) continue;
+
+        // `!N` recalls entry N from history before it is executed.
+        if (line.size() > 1 && line[0] == '!' &&
+            std::all_of(line.begin() + 1, line.end(), [](unsigned char c) {
+                return std::isdigit(c) != 0;
+            })) {
+            const std::string* previous =
+                exec_.history().at(static_cast<size_t>(std::stoul(line.substr(1))));
+            if (!previous) {
+                std::cerr << "minishell: " << line << ": event not found\n";
+                continue;
+            }
+            line = *previous;
+            std::cout << line << "\n" << std::flush;
+        }
 
         exec_.history().add(line);
         const ParsedLine parsed = parse_line(line);
