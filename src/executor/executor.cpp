@@ -162,6 +162,10 @@ void Executor::run_external(const ParsedLine& line, const std::string& raw) {
     const size_t count = line.stages.size();
     const bool jc = terminal::active();
     const bool own_group = line.background || jc;
+    // The job table shows the command without the trailing '&'.
+    std::string display = raw;
+    while (!display.empty() && (display.back() == '&' || display.back() == ' '))
+        display.pop_back();
     std::vector<pid_t> pids;
     pids.reserve(count);
     pid_t job_pgid = 0;
@@ -219,8 +223,8 @@ void Executor::run_external(const ParsedLine& line, const std::string& raw) {
 
     if (line.background) {
         if (!pids.empty()) {
-            const int id = jobs_.add(pids, raw);
-            std::cout << "[" << id << "] Started  " << raw << "  PID: " << pids.front()
+            const int id = jobs_.add(pids, display);
+            std::cout << "[" << id << "] Started  " << display << "  PID: " << pids.front()
                       << "\n";
         }
     } else if (!pids.empty()) {

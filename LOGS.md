@@ -90,6 +90,12 @@ with a real Linux toolchain (WSL2 Ubuntu 24.04, g++ 13.3, cmake 3.28).
 - Clean rebuild with warnings enabled: zero warnings.
 - `docs/test_cases.md` records every required test and the observed result.
 
+## 2026-11-23 — Presentation polish
+
+- Job notices showed the raw line, including the trailing `&` (`[1] Running
+  sleep 30 &`). The executor now strips trailing `&`/spaces for the job table
+  and the `Started`/`Done` messages, so they read like bash.
+
 ## Deliberately not built
 
 - Line editing / history navigation / tab completion.
