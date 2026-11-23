@@ -50,6 +50,14 @@ void print_detail(pid_t pid, const std::string& title) {
         std::cerr << "minishell: no such process: " << pid << "\n";
         return;
     }
+
+    // Utilization needs two samples; 200 ms is short enough to feel instant and
+    // long enough for a tick to land on any reasonable CLK_TCK.
+    constexpr useconds_t kSampleUs = 200 * 1000;
+    ProcInfo later;
+    ::usleep(kSampleUs);
+    const bool sampled = read_proc(pid, later);
+
     const double secs = static_cast<double>(p.utime + p.stime) / clock_ticks();
     const double user = static_cast<double>(p.utime) / clock_ticks();
 
@@ -59,8 +67,17 @@ void print_detail(pid_t pid, const std::string& title) {
               << "State:      " << p.state << "\n"
               << "Threads:    " << p.num_threads << "\n"
               << "CPU time:   " << std::fixed << std::setprecision(2) << secs
-              << " s (user " << user << " s)\n"
-              << "Virtual:    " << human_size(p.vsize) << "\n"
+              << " s (user " << user << " s)\n";
+    if (sampled && clock_ticks() > 0) {
+        long long delta = static_cast<long long>(later.utime + later.stime) -
+                          static_cast<long long>(p.utime + p.stime);
+        if (delta < 0) delta = 0;
+        const double pct =
+            100.0 * static_cast<double>(delta) / (clock_ticks() * (kSampleUs / 1e6));
+        std::cout << "CPU now:    " << std::fixed << std::setprecision(1) << pct
+                  << " % (200 ms sample)\n";
+    }
+    std::cout << "Virtual:    " << human_size(p.vsize) << "\n"
               << "Resident:   " << human_size(p.rss_pages * static_cast<unsigned long long>(page_size()))
               << "\n"
               << "Name:       " << p.comm << "\n"

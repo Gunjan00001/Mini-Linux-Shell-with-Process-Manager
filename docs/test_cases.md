@@ -64,5 +64,5 @@ pipe commands into the same binary.
   design.
 - `monitor` output includes every process the user may read. In WSL2 the user
   can read all of them.
-- CPU time shown by `pinfo` is cumulative (`utime + stime`), not a sampled
-  percentage.
+- CPU time shown by `pinfo` is cumulative (`utime + stime`); the `CPU now` line
+  is a 200 ms two-sample percentage.

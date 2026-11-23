@@ -92,7 +92,8 @@ docs/         architecture, system calls, test cases
 - No line editing library: no arrow keys, tab completion, or persistent history.
 - No environment variable expansion, globbing, `&&`, `||`, `;`, or subshells.
 - Background job output can interleave with the prompt (no redraw).
-- `monitor` shows cumulative CPU time, not sampled CPU utilization.
+- `monitor` lists cumulative CPU time; `pinfo` adds a 200 ms two-sample CPU
+  percentage.
 - Job control requires a real terminal. With piped stdin the shell falls back to
   shared process groups and terminal signals behave like a non-interactive
   shell.

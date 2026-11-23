@@ -132,8 +132,9 @@ behavior of a non-interactive shell.
 spaces and parentheses are safe. `utime`/`stime` are cumulative clock ticks
 (field 14/15); `vsize` and `rss` come from fields 23/24. `cmdline` is read as
 NUL-separated bytes and rendered with spaces. `/proc/meminfo` and `/proc/uptime`
-provide the header summary. CPU *utilization* would need two samples and is not
-implemented.
+provide the header summary. CPU utilization is a rate, so `pinfo` and
+`monitor --pid` take a second snapshot 200 ms later and report the tick delta as
+a percentage; the table view stays cumulative.
 
 ## Error handling
 
