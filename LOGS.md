@@ -96,6 +96,12 @@ with a real Linux toolchain (WSL2 Ubuntu 24.04, g++ 13.3, cmake 3.28).
   sleep 30 &`). The executor now strips trailing `&`/spaces for the job table
   and the `Started`/`Done` messages, so they read like bash.
 
+## Versioning meaning (clarified)
+
+The third number counts **bug fixes**, not releases: `vMAJOR.MINOR.BUGFIX`.
+`v1.0.1` therefore means "core shell, one bug fix shipped". Rule recorded in
+`RULES.md` §6.
+
 ## Deliberately not built
 
 - Line editing / history navigation / tab completion.

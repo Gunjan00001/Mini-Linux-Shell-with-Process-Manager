@@ -55,7 +55,13 @@ reason recorded in `LOGS.md`.
 - One logical change per commit; small commits are preferred over one big one.
 - Conventional prefixes: `feat(scope):`, `fix(scope):`, `test:`, `docs:`,
   `chore:`.
-- Tags are semver: `vMAJOR.MINOR.PATCH` (`v0.1.0`, `v1.0.0`).
+- Versioning is `vMAJOR.MINOR.BUGFIX`:
+  - **MAJOR** — milestone feature sets (`v1` = feature-complete shell).
+  - **MINOR** — new features added after a milestone.
+  - **BUGFIX** — increments with every bug-fix release; it counts fixes, not
+    tags.
+- Annotated git tags are created per release: `git tag -a vX.Y.Z`.
+  Example: `v1.0.1` = core release plus one bug fix.
 - `LOGS.md` is updated after the work it describes, with commit hashes.
 - Build must pass before pushing. `python3 tests/pty_smoke.py` must pass before
   tagging a release.
