@@ -114,6 +114,25 @@ with a real Linux toolchain (WSL2 Ubuntu 24.04, g++ 13.3, cmake 3.28).
 - `docs/demo_script.md`: the exact recording sequence for the submission video,
   including the Ctrl+C/Ctrl+Z/bg/fg segment and the CPU sample.
 
+## 2026-11-23 — Install path and documentation overhaul
+
+- `install.sh`: clone into `~/.local/src`, Release build, install to
+  `~/.local/bin`. No sudo, refuses non-Linux with a WSL2 pointer, prints the
+  PATH line when needed, supports `--uninstall`. Tested end to end against the
+  GitHub remote with a throwaway `HOME` (clone → build → run → uninstall).
+- README rewritten as a user document, not a project note: requirements with
+  WSL2 instructions, three install routes (curl one-liner, prebuilt release
+  binary, git clone), quick start, full syntax/builtin/job-control/monitoring
+  usage, troubleshooting table, uninstall, limitations, docs index.
+- Prebuilt `minishell-linux-x86_64` built with `-static-libstdc++
+  -static-libgcc`; `ldd` shows only libc, so it runs on any modern x86_64 glibc
+  distro. Attached to the `v1.1.0` GitHub release.
+- `docs/faq.md`: why no npm/pip/brew, Windows/macOS behavior, why raw syscalls,
+  non-tty job control, CPU sampling.
+- Deliberately not done: Homebrew tap, AUR/PPA packaging, self-hosted package
+  repository. They need maintainer accounts and periodic rebuilds; the curl
+  installer covers the same need without that upkeep.
+
 ## Versioning meaning (clarified)
 
 The third number counts **bug fixes**, not releases: `vMAJOR.MINOR.BUGFIX`.
