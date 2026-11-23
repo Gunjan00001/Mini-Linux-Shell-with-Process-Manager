@@ -96,6 +96,24 @@ with a real Linux toolchain (WSL2 Ubuntu 24.04, g++ 13.3, cmake 3.28).
   sleep 30 &`). The executor now strips trailing `&`/spaces for the job table
   and the `Started`/`Done` messages, so they read like bash.
 
+## 2026-11-23 — CI, viva, CPU sampling, history recall
+
+- `e0bd7ee` Versioning documented as `vMAJOR.MINOR.BUGFIX` (third number counts
+  bug fixes) after confusing it with git tags.
+- `0b548fa` GitHub Actions CI: configure, build and `ctest` on ubuntu-latest.
+  The repo now verifies itself on every push without relying on WSL.
+- `24d3bf8` `docs/viva_qa.md`: 29 answers tied to specific files and system
+  calls. Written for the viva, not as marketing.
+- `d1ae792` `pinfo` / `monitor --pid` now report CPU utilization. Two stat
+  snapshots 200 ms apart; delta ticks / `CLK_TCK` / interval. Verified against a
+  busy `yes` process: 100.0 %. README/architecture/test docs updated so they no
+  longer claim this is unsupported.
+- `08ecf6d` `!N` recalls history entry N. Prints the expanded command and
+  flushes stdout before running it, otherwise child output overtakes the echo.
+  Unknown entries report `event not found` instead of executing anything.
+- `docs/demo_script.md`: the exact recording sequence for the submission video,
+  including the Ctrl+C/Ctrl+Z/bg/fg segment and the CPU sample.
+
 ## Versioning meaning (clarified)
 
 The third number counts **bug fixes**, not releases: `vMAJOR.MINOR.BUGFIX`.
