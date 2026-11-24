@@ -258,6 +258,9 @@ install.sh              one-line installer
 ## Limitations
 
 - No line editing: arrow keys, tab completion and persistent history are absent.
+- Builtins run inside the shell process, so redirection is ignored for them
+  (`jobs > f` prints to the terminal) and builtins cannot appear inside a
+  pipeline (`history | wc -l` fails: `history` is not an external program).
 - No globbing (`*.txt`), environment expansion, `;`, `&&`, `||` or subshells.
 - Background output can interleave with the prompt (no redraw).
 - `monitor`'s table shows cumulative CPU time; `pinfo` adds the sampled rate.

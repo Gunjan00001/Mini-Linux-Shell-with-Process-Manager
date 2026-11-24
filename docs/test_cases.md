@@ -47,6 +47,11 @@ pipe commands into the same binary.
 | `&` mid-line | `sleep 1 & echo hi` | PASS, rejected with clear message |
 | History recall | `echo first`, `!1` | PASS, entry re-executed and echoed |
 | Missing history entry | `!99` | PASS, `!99: event not found` |
+| History index overflow | `!99999999999999999999` | PASS, `event not found`, no crash |
+| Background pipeline group | `sleep 30 \| sleep 40 &`, then `kill %1` | PASS, both stages share one pgid and die together |
+| Builtin in pipeline | `history \| wc -l` | known limitation: `execvp("history")` fails |
+| Builtin redirection | `jobs > f` | known limitation: output stays on the terminal |
+| Overflowing pid argument | `pinfo 99999999999999999999` | PASS, `pinfo: invalid pid` |
 
 ## Automated tests
 
@@ -54,7 +59,7 @@ pipe commands into the same binary.
 |---|---|---|
 | Parser unit tests (12 cases) | `./build/parser_tests` | PASS |
 | `/proc` parser + live pid | `./build/monitor_tests` | PASS |
-| Ctrl+C / Ctrl+Z / jobs / bg / fg | `python3 tests/pty_smoke.py` | PASS |
+| Ctrl+C / Ctrl+Z / jobs / bg / fg / `!` overflow | `python3 tests/pty_smoke.py` | PASS |
 | Zombie check | `sleep 0.2 &`, idle 1.2 s, `ps --ppid <shell>` | no children left |
 | fd leak check | 15x `ls \| wc -l`, compare `/proc/<shell>/fd` | 7 before, 7 after |
 | Clean rebuild | delete `build/`, rerun cmake + make | PASS, no warnings |
