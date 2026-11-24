@@ -56,6 +56,8 @@ def main():
     step(b"fg 1\n", 0.8, "fg 1")
     step(b"\x03", 1.0, "ctrl-c fg job")
     step(b"echo fgtest\n", 0.8, "after fg ctrl-c")
+    step(b"!99999999999999999999\n", 0.6, "history overflow")
+    step(b"echo afteroverflow\n", 0.6, "after overflow")
     step(b"exit\n", 1.0, "exit")
 
     for label, text in transcript:
@@ -68,6 +70,7 @@ def main():
         "ctrl-z created stopped job": "Stopped" in joined,
         "bg resumed job": "Running" in joined,
         "fg job interruptible": "fgtest" in joined,
+        "no crash on history overflow": "afteroverflow" in joined,
     }
     failed = [name for name, ok in checks.items() if not ok]
     if failed:
