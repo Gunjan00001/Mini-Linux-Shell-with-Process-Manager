@@ -14,6 +14,7 @@
 
 #include <cerrno>
 #include <cctype>
+#include <climits>
 #include <iostream>
 
 namespace {
@@ -28,6 +29,40 @@ int parse_signal(const std::string& s) {
     if (s == "STOP") return SIGSTOP;
     if (s == "CONT") return SIGCONT;
     return -1;
+}
+
+// strtol-based: atoi() is undefined behavior on overflow.
+bool parse_long(const std::string& s, long& out) {
+    if (s.empty()) return false;
+    errno = 0;
+    char* end = nullptr;
+    const long value = std::strtol(s.c_str(), &end, 10);
+    if (errno != 0 || end == s.c_str() || *end != '\0') return false;
+    out = value;
+    return true;
+}
+
+bool parse_pid(const std::string& s, pid_t& out) {
+    long value = 0;
+    if (!parse_long(s, value) || value <= 0 || value > INT_MAX) return false;
+    out = static_cast<pid_t>(value);
+    return true;
+}
+
+bool parse_job_id(const std::string& s, int& out) {
+    long value = 0;
+    if (!parse_long(s, value) || value <= 0 || value > INT_MAX) return false;
+    out = static_cast<int>(value);
+    return true;
+}
+
+// Signal a whole job: one killpg for the group, per-pid as a fallback for jobs
+// that were started without job control (their children share the shell's
+// group, so killpg(pgid) would be wrong).
+void signal_job(const std::vector<pid_t>& pids, int sig) {
+    if (pids.empty()) return;
+    if (::killpg(pids.front(), sig) == 0) return;
+    for (pid_t pid : pids) ::kill(pid, sig);
 }
 
 }  // namespace
@@ -73,27 +108,31 @@ bool Executor::run_builtin(const ParsedLine& line, bool& handled) {
     } else if (name == "kill") {
         if (c.args.empty()) {
             std::cerr << "usage: kill <pid|%job> [signal]\n";
-        } else {
-            const int sig = c.args.size() >= 2 ? parse_signal(c.args[1]) : SIGTERM;
-            if (sig <= 0) {
-                std::cerr << "minishell: kill: bad signal\n";
+            return true;
+        }
+        const int sig = c.args.size() >= 2 ? parse_signal(c.args[1]) : SIGTERM;
+        if (sig <= 0) {
+            std::cerr << "minishell: kill: bad signal\n";
+            return true;
+        }
+        const std::string target = c.args[0];
+        if (!target.empty() && target[0] == '%') {
+            int job_id = 0;
+            Job* j = parse_job_id(target.substr(1), job_id) ? jobs_.find(job_id) : nullptr;
+            if (!j || j->pids.empty()) {
+                std::cerr << "minishell: kill: no such job\n";
             } else {
-                pid_t pid = -1;
-                const std::string& target = c.args[0];
-                if (target[0] == '%') {
-                    if (Job* j = jobs_.find(std::atoi(target.c_str() + 1))) {
-                        if (!j->pids.empty()) pid = j->pids.front();
-                    }
-                } else {
-                    pid = static_cast<pid_t>(std::atoi(target.c_str()));
-                }
-                if (pid <= 0) {
-                    std::cerr << "minishell: kill: invalid target\n";
-                } else if (::kill(pid, sig) < 0) {
-                    std::perror("minishell: kill");
-                } else {
-                    std::cout << "sent signal " << sig << " to " << pid << "\n";
-                }
+                signal_job(j->pids, sig);
+                std::cout << "sent signal " << sig << " to job " << job_id << "\n";
+            }
+        } else {
+            pid_t pid = 0;
+            if (!parse_pid(target, pid)) {
+                std::cerr << "minishell: kill: invalid pid\n";
+            } else if (::kill(pid, sig) < 0) {
+                std::perror("minishell: kill");
+            } else {
+                std::cout << "sent signal " << sig << " to " << pid << "\n";
             }
         }
     } else if (name == "fg" || name == "bg") {
@@ -101,7 +140,8 @@ bool Executor::run_builtin(const ParsedLine& line, bool& handled) {
         if (!c.args.empty()) {
             std::string id = c.args[0];
             if (!id.empty() && id[0] == '%') id = id.substr(1);
-            j = jobs_.find(std::atoi(id.c_str()));
+            int job_id = 0;
+            if (parse_job_id(id, job_id)) j = jobs_.find(job_id);
         }
         if (!j) {
             std::cerr << "minishell: " << name << ": no such job\n";
@@ -116,25 +156,33 @@ bool Executor::run_builtin(const ParsedLine& line, bool& handled) {
             if (name == "fg") {
                 jobs_.erase(id);
                 if (terminal::active() && pgid > 0) terminal::give_to(pgid);
-                for (pid_t pid : pids) ::kill(pid, SIGCONT);
+                signal_job(pids, SIGCONT);
                 wait_foreground(pids, command);
                 if (terminal::active()) terminal::take_back();
             } else {
                 // bg: stay in the table, just let it run again.
-                for (pid_t pid : pids) ::kill(pid, SIGCONT);
+                signal_job(pids, SIGCONT);
             }
         }
     } else if (name == "ps") {
         procmon::print_ps(::getpid());
     } else if (name == "pinfo") {
+        pid_t pid = 0;
         if (c.args.empty()) {
             std::cerr << "usage: pinfo <pid>\n";
+        } else if (!parse_pid(c.args[0], pid)) {
+            std::cerr << "minishell: pinfo: invalid pid\n";
         } else {
-            procmon::print_pinfo(static_cast<pid_t>(std::atoi(c.args[0].c_str())));
+            procmon::print_pinfo(pid);
         }
     } else if (name == "monitor") {
         if (c.args.size() >= 2 && c.args[0] == "--pid") {
-            procmon::print_monitor_pid(static_cast<pid_t>(std::atoi(c.args[1].c_str())));
+            pid_t pid = 0;
+            if (!parse_pid(c.args[1], pid)) {
+                std::cerr << "minishell: monitor: invalid pid\n";
+            } else {
+                procmon::print_monitor_pid(pid);
+            }
         } else {
             procmon::print_monitor();
         }
@@ -182,7 +230,9 @@ void Executor::run_external(const ParsedLine& line, const std::string& raw) {
         const pid_t pid = ::fork();
         if (pid == 0) {
             signals::reset_in_child();
-            if (own_group) ::setpgid(0, 0);
+            // Every stage joins stage 0's group so the job can be signalled,
+            // resumed and handed the terminal as one unit.
+            if (own_group) ::setpgid(0, i == 0 ? 0 : pids.front());
 
             if (prev_read != -1) {
                 ::dup2(prev_read, STDIN_FILENO);
@@ -208,10 +258,13 @@ void Executor::run_external(const ParsedLine& line, const std::string& raw) {
         }
         if (pid < 0) {
             std::perror("minishell: fork");
-            if (has_next) ::close(pipefd[1]);
+            if (has_next) {
+                ::close(pipefd[0]);
+                ::close(pipefd[1]);
+            }
             break;
         }
-        if (own_group) ::setpgid(pid, pid);
+        if (own_group) ::setpgid(pid, pids.empty() ? pid : pids.front());
         if (jc && !line.background && job_pgid == 0) job_pgid = pid;
 
         pids.push_back(pid);
