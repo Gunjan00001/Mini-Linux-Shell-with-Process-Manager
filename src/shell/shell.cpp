@@ -30,8 +30,13 @@ void Shell::run() {
             std::all_of(line.begin() + 1, line.end(), [](unsigned char c) {
                 return std::isdigit(c) != 0;
             })) {
-            const std::string* previous =
-                exec_.history().at(static_cast<size_t>(std::stoul(line.substr(1))));
+            // Bound the digits before stoul(): a 20-digit "history index" used
+            // to throw std::out_of_range and abort the shell.
+            const std::string digits = line.substr(1);
+            const std::string* previous = nullptr;
+            if (digits.size() <= 9) {
+                previous = exec_.history().at(static_cast<size_t>(std::stoul(digits)));
+            }
             if (!previous) {
                 std::cerr << "minishell: " << line << ": event not found\n";
                 continue;
