@@ -107,15 +107,24 @@ bool Executor::run_builtin(const ParsedLine& line, bool& handled) {
         history_.print();
     } else if (name == "kill") {
         if (c.args.empty()) {
-            std::cerr << "usage: kill <pid|%job> [signal]\n";
+            std::cerr << "usage: kill [-sig] <pid|%job> [sig]\n";
             return true;
         }
-        const int sig = c.args.size() >= 2 ? parse_signal(c.args[1]) : SIGTERM;
+        std::string target;
+        int sig = SIGTERM;
+        if (c.args.size() >= 2 && !c.args[0].empty() && c.args[0][0] == '-' &&
+            c.args[0].size() > 1) {
+            // bash-style prefix: kill -9 pid / kill -KILL pid
+            sig = parse_signal(c.args[0].substr(1));
+            target = c.args[1];
+        } else {
+            target = c.args[0];
+            if (c.args.size() >= 2) sig = parse_signal(c.args[1]);
+        }
         if (sig <= 0) {
             std::cerr << "minishell: kill: bad signal\n";
             return true;
         }
-        const std::string target = c.args[0];
         if (!target.empty() && target[0] == '%') {
             int job_id = 0;
             Job* j = parse_job_id(target.substr(1), job_id) ? jobs_.find(job_id) : nullptr;
@@ -194,7 +203,7 @@ bool Executor::run_builtin(const ParsedLine& line, bool& handled) {
             << "  exit                leave the shell\n"
             << "  jobs                list background/stopped jobs\n"
             << "  history             show command history\n"
-            << "  kill <pid|%job> [sig]  send a signal (default SIGTERM)\n"
+            << "  kill [-sig] <pid|%job> [sig]  send a signal (default SIGTERM)\n"
             << "  fg <id> / bg <id>   resume a job (SIGCONT), fg also waits\n"
             << "  ps                  processes created by this shell\n"
             << "  pinfo <pid>         detailed process information\n"
@@ -297,10 +306,12 @@ void Executor::wait_foreground(const std::vector<pid_t>& pids, const std::string
 
         if (rc < 0) continue;
         if (WIFSTOPPED(status)) {
-            const int id = jobs_.add({pid}, raw);
+            // All stages of the pipeline share the group, so record every pid;
+            // a later `fg %n` then waits for the whole job.
+            const int id = jobs_.add(pids, raw);
             if (Job* j = jobs_.find(id)) j->state = JobState::Stopped;
             std::cout << "\n[" << id << "] Stopped  " << raw << "  PID: " << pid << "\n";
-            return;  // remaining pipeline stages are left stopped/running
+            return;
         }
     }
 }
