@@ -114,6 +114,39 @@ with a real Linux toolchain (WSL2 Ubuntu 24.04, g++ 13.3, cmake 3.28).
 - `docs/demo_script.md`: the exact recording sequence for the submission video,
   including the Ctrl+C/Ctrl+Z/bg/fg segment and the CPU sample.
 
+## 2026-11-25 — Bug hunt and fixes (v1.1.1)
+
+Found by reproducing, not by reading:
+
+- **`!N` overflow crashed the shell.** `!99999999999999999999` reached
+  `std::stoul`, threw `std::out_of_range`, and aborted the process (core dump).
+  Fix: digits longer than 9 are rejected and reported as `event not found`.
+  Regression: pty smoke now sends the overflowing value and asserts the shell
+  still answers the next command.
+- **Background pipelines had one process group per stage.** Every stage child
+  called `setpgid(0,0)`, so `sleep 30 | sleep 40 &` produced pgids `510` and
+  `511`; `kill %1` killed only the first and `sleep 40` survived. Fix: stage 0
+  creates the group, later stages join it (child and parent both call
+  `setpgid` with stage 0's pid). Verified: both stages now show pgid 458 and
+  `kill %1` leaves nothing behind.
+
+Found by reading the code:
+
+- Pipe read end leaked when `fork()` failed mid-pipeline (only the write end was
+  closed). Both ends are closed now.
+- Exit cleanup could not kill *stopped* jobs: a stopped process does not act on
+  `SIGHUP` until continued. `terminate_all` now sends `killpg(SIGHUP)` then
+  `killpg(SIGCONT)`, with per-pid fallback for jobs without their own group.
+- `kill`, `fg`, `bg`, `pinfo`, `monitor --pid` used `atoi`, which is undefined
+  behavior on overflow. Replaced with `strtol` + range checks; bad values now
+  print `invalid pid` / `no such job`.
+- `kill %n` and `bg %n` now signal the whole group with `killpg`, not just the
+  leader.
+
+Documented instead of "fixed": builtins ignore redirection and cannot run
+inside pipelines; both are consequences of running builtins in the shell
+process and are now listed in README Limitations and `docs/test_cases.md`.
+
 ## 2026-11-23 — Install path and documentation overhaul
 
 - `install.sh`: clone into `~/.local/src`, Release build, install to
