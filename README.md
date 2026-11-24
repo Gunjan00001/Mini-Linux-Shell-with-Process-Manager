@@ -261,6 +261,9 @@ install.sh              one-line installer
 - Builtins run inside the shell process, so redirection is ignored for them
   (`jobs > f` prints to the terminal) and builtins cannot appear inside a
   pipeline (`history | wc -l` fails: `history` is not an external program).
+- No stderr redirection: `ls 2> err.txt` passes `2` as an argument and
+  redirects stdout. Backslashes are literal outside quotes (`echo a\ b` is two
+  arguments), so quote arguments that need spaces.
 - No globbing (`*.txt`), environment expansion, `;`, `&&`, `||` or subshells.
 - Background output can interleave with the prompt (no redraw).
 - `monitor`'s table shows cumulative CPU time; `pinfo` adds the sampled rate.

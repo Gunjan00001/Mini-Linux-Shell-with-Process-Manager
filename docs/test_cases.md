@@ -52,6 +52,9 @@ pipe commands into the same binary.
 | Builtin in pipeline | `history \| wc -l` | known limitation: `execvp("history")` fails |
 | Builtin redirection | `jobs > f` | known limitation: output stays on the terminal |
 | Overflowing pid argument | `pinfo 99999999999999999999` | PASS, `pinfo: invalid pid` |
+| bash-style signal | `kill -9 %1`, `kill -KILL 4210` | PASS, prefix accepted |
+| Stderr redirection | `ls 2> err.txt` | known limitation: `2` is an argument, stdout redirected |
+| Backslash escaping | `echo a\ b` | known limitation: backslash is literal outside quotes |
 
 ## Automated tests
 
