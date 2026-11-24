@@ -114,6 +114,24 @@ with a real Linux toolchain (WSL2 Ubuntu 24.04, g++ 13.3, cmake 3.28).
 - `docs/demo_script.md`: the exact recording sequence for the submission video,
   including the Ctrl+C/Ctrl+Z/bg/fg segment and the CPU sample.
 
+## 2026-11-25 — Second bug hunt (v1.1.2)
+
+Fuzzed 29 hostile inputs (unbalanced quotes, operator-only lines, overflow pids,
+`kill 0`, `kill -1`, a 100 KB argument, an 81-stage pipeline). No crashes. Fixes
+for the divergences found:
+
+- `kill -9 pid` / `kill -KILL %job` now work; the leading `-` was previously
+  parsed as part of the pid and rejected. Plain `kill pid [sig]` is unchanged.
+- Ctrl+Z on a multi-stage foreground pipeline recorded only the first stage in
+  the job table. `wait_foreground` now stores every pipeline pid, so `jobs`
+  shows `PID: 459,460` and `fg` waits for the whole job. Verified: stopped
+  pipeline is fully cleaned up on exit.
+- `monitor` scanned `/proc` twice per invocation (once for the task count, once
+  for the table). One scan now feeds both.
+- Documented instead of changed: no stderr (`2>`) redirection, and backslashes
+  are literal outside quotes. Both are parser-scope decisions, listed in
+  README Limitations and `docs/test_cases.md`.
+
 ## 2026-11-25 — Bug hunt and fixes (v1.1.1)
 
 Found by reproducing, not by reading:
