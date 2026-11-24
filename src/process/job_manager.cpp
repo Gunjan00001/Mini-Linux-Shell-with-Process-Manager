@@ -79,7 +79,13 @@ void JobManager::erase(int id) {
 
 void JobManager::terminate_all() {
     for (const Job& j : jobs_) {
-        for (pid_t pid : j.pids) ::kill(pid, SIGHUP);
+        if (j.pids.empty()) continue;
+        const pid_t pgid = j.pids.front();
+        if (::killpg(pgid, SIGHUP) < 0) {
+            for (pid_t pid : j.pids) ::kill(pid, SIGHUP);
+        }
+        // A stopped job only acts on the queued SIGHUP once it runs again.
+        ::killpg(pgid, SIGCONT);
     }
     jobs_.clear();
 }
