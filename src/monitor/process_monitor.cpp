@@ -25,7 +25,7 @@ std::string trim_comm(const std::string& s) {
     return s.size() > 24 ? s.substr(0, 24) : s;
 }
 
-void system_summary() {
+void system_summary(size_t task_count) {
     unsigned long long total_kb = 0, avail_kb = 0;
     std::ifstream meminfo("/proc/meminfo");
     std::string key, unit;
@@ -38,7 +38,7 @@ void system_summary() {
     std::ifstream uptime_file("/proc/uptime");
     uptime_file >> uptime;
 
-    std::cout << "Tasks: " << list_processes().size()
+    std::cout << "Tasks: " << task_count
               << "   Uptime: " << static_cast<unsigned long long>(uptime) << "s"
               << "   Mem: " << human_size((total_kb - avail_kb) * 1024ULL) << " / "
               << human_size(total_kb * 1024ULL) << "\n\n";
@@ -142,12 +142,13 @@ std::vector<ProcInfo> list_processes() {
 }
 
 void print_monitor() {
+    const std::vector<ProcInfo> procs = list_processes();
     std::cout << "================ MINI SHELL MONITOR ================\n\n";
-    system_summary();
+    system_summary(procs.size());
     std::cout << std::left << std::setw(8) << "PID" << std::setw(8) << "PPID" << std::setw(10)
               << "STATE" << std::setw(6) << "THR" << std::setw(12) << "RSS" << "COMMAND\n";
     std::cout << "-----------------------------------------------------\n";
-    for (const ProcInfo& p : list_processes()) {
+    for (const ProcInfo& p : procs) {
         std::cout << std::left << std::setw(8) << p.pid << std::setw(8) << p.ppid
                   << std::setw(10) << p.state << std::setw(6) << p.num_threads
                   << std::setw(12)
