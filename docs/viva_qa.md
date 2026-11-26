@@ -69,9 +69,11 @@ on stdin *and* the pipe, wakes on the pipe, reaps, and prints `[n] Done ...`.
 ## Signals and job control
 
 **Q12. Why doesn't Ctrl+C kill the shell?**
-The shell ignores `SIGINT` (and `SIGQUIT`, `SIGTSTP`). With job control the
-terminal belongs to the foreground job's process group, so the kernel delivers
-the signal to that group, not to the shell.
+The shell installs a `SIGINT` handler instead of dying on the default action.
+The handler only writes a byte to the self-pipe; the main loop decides what to
+do. With job control the terminal belongs to the foreground job's process
+group, so Ctrl+C at a running job never reaches the shell. At the prompt, the
+self-pipe wakes the line reader, which drops the partial line and redraws.
 
 **Q13. What is a process group and why create one per job?**
 A process group is what the terminal sends signals to (`tcsetpgrp` sets the
@@ -154,6 +156,19 @@ Line editing is terminal UI, not process management. `select()` already gives
 us the one behavior that matters: waking for signals at the prompt.
 
 **Q29. What is the biggest remaining correctness gap?**
-Interactive line editing and redrawing the prompt around job notices; output
-from background jobs can interleave with typed input. Also no globbing or
-environment expansion, so the shell is a deliberate subset.
+No line editing, and background output can still interleave with typed input
+because the prompt is not redrawn around asynchronous writes. Prompt redraw
+after Ctrl+C is implemented; a full readline-style editor is not. Globbing and
+environment expansion are also absent, so the shell is a deliberate subset.
+
+**Q30. Why does a stopped three-stage pipeline print only one `Stopped` line?**
+All stages share one process group, so Ctrl+Z stops them together. The executor
+records every stage pid but returns after the first stop; the reaper only
+announces a `Running -> Stopped` transition, so the remaining stage events do
+not repeat the message. One job, one line.
+
+**Q31. Why read the terminal one byte at a time?**
+So the loop returns to `select()` between keystrokes and can service the
+self-pipe: a background job finishing or Ctrl+C at the prompt is handled while
+the user is typing. The terminal is still in canonical mode, so it echoes and
+buffers the line; this is not a readline implementation.
