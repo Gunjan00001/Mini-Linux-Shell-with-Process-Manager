@@ -39,9 +39,13 @@ void JobManager::reap(std::vector<std::string>& notices) {
         if (!job) continue;  // foreground child already collected by the executor
 
         if (WIFSTOPPED(status)) {
-            job->state = JobState::Stopped;
-            notices.push_back("[" + std::to_string(job->id) + "] Stopped  " +
-                              job->command + "  PID: " + std::to_string(pid));
+            // Only announce the first stop: every stage of a pipeline stops
+            // together, but the user needs one line, not one per stage.
+            if (job->state != JobState::Stopped) {
+                job->state = JobState::Stopped;
+                notices.push_back("[" + std::to_string(job->id) + "] Stopped  " +
+                                  job->command + "  PID: " + std::to_string(pid));
+            }
         } else if (WIFCONTINUED(status)) {
             job->state = JobState::Running;
         } else if (WIFEXITED(status) || WIFSIGNALED(status)) {
