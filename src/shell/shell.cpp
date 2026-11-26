@@ -90,7 +90,7 @@ bool Shell::read_line(std::string& out) {
         }
 
         if (sig_fd >= 0 && FD_ISSET(sig_fd, &rfds)) {
-            signals::drain_notifications();
+            const bool interrupted = signals::drain_notifications();
             std::vector<std::string> notices;
             exec_.jobs().reap(notices);
 
@@ -99,6 +99,12 @@ bool Shell::read_line(std::string& out) {
             if (!notices.empty()) {
                 std::cout << "\n";
                 for (const std::string& n : notices) std::cout << n << "\n";
+            }
+            // Ctrl+C at the prompt: drop any partial line and show a fresh
+            // prompt, like bash, instead of leaving the cursor on a blank line.
+            if (interrupted) {
+                out.clear();
+                std::cout << "\n" << prompt() << std::flush;
             }
             continue;
         }
