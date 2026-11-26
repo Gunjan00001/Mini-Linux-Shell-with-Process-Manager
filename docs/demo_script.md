@@ -72,6 +72,10 @@ finishes (start `sleep 3 &` for this moment).
 
 ## 5. Signals and job control (1.5 min)
 
+First press Ctrl+C at an empty prompt: the partial line is discarded and a
+fresh prompt appears. Say: SIGINT reaches the shell through the self-pipe, so
+the prompt redraws instead of the shell dying.
+
 ```text
 sleep 30
 ```
@@ -129,5 +133,6 @@ exit
 - [ ] Terminal shows prompt `user@minishell:...$`
 - [ ] No compiler warnings during build
 - [ ] `jobs` output visible after Ctrl+Z and after `bg`
+- [ ] Ctrl+C at the prompt discards the partial line and redraws the prompt
 - [ ] `pinfo` shows both `CPU time` and `CPU now`
 - [ ] End with a clean `exit` (no leftover jobs)
