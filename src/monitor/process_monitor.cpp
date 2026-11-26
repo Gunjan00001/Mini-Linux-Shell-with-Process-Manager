@@ -21,6 +21,8 @@ std::string proc_path(pid_t pid, const char* file) {
     return "/proc/" + std::to_string(pid) + "/" + file;
 }
 
+// Keep table columns aligned even if a future kernel allows a longer comm.
+// Linux currently caps it below this, so the cut is only a display guard.
 std::string trim_comm(const std::string& s) {
     return s.size() > 24 ? s.substr(0, 24) : s;
 }
@@ -88,6 +90,9 @@ void print_detail(pid_t pid, const std::string& title) {
 }  // namespace
 
 bool parse_stat(const std::string& s, ProcInfo& out) {
+    // comm is field 2 and may contain spaces/parentheses, so split on the last
+    // ')' before reading the numeric fields. This is why the monitor still
+    // parses processes whose names contain "(" or ")".
     const size_t open = s.find('(');
     const size_t close = s.rfind(')');
     if (open == std::string::npos || close == std::string::npos || close < open) return false;
@@ -106,6 +111,8 @@ bool parse_stat(const std::string& s, ProcInfo& out) {
     in >> out.num_threads;                   // 20
     in >> skip >> skip;                      // 21, 22
     in >> out.vsize >> out.rss_pages;        // 23, 24
+    // A truncated file or missing field leaves the stream in a failed state;
+    // the caller then treats the process as unreadable rather than showing junk.
     return static_cast<bool>(in);
 }
 
@@ -130,6 +137,9 @@ std::string read_cmdline(pid_t pid) {
 std::vector<ProcInfo> list_processes() {
     std::vector<ProcInfo> result;
     std::error_code ec;
+    // /proc mixes numeric pid directories with files like "cpuinfo"; only the
+    // numeric entries are processes. Entries we cannot read (permissions,
+    // processes exiting mid-scan) are skipped instead of aborting the listing.
     for (const auto& entry : std::filesystem::directory_iterator("/proc", ec)) {
         const std::string name = entry.path().filename().string();
         if (name.empty() || !std::all_of(name.begin(), name.end(), ::isdigit)) continue;
@@ -176,6 +186,7 @@ void print_ps(pid_t parent) {
     if (!any) std::cout << "(no child processes)\n";
 }
 
+// /proc reports memory in KiB, so divide by 1024 (binary) rather than 1000.
 std::string human_size(unsigned long long bytes) {
     static const char* units[] = {"B", "KB", "MB", "GB", "TB"};
     double v = static_cast<double>(bytes);
