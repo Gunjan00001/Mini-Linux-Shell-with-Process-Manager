@@ -49,8 +49,9 @@ foreground never reaches the shell, because the terminal belongs to the job's
 process group.
 
 **How do I see the demo without installing?**
-Read `docs/test_cases.md` for recorded results and `docs/demo_script.md` for the
-exact command sequence used in the video.
+Read `docs/test_cases.md` for recorded results, `docs/demo_script.md` for the
+exact command sequence used in the video, and `docs/screenshots/` for stills of
+the quick start, job control, monitor and test run.
 
 **Where do background jobs go when I exit?**
 They receive `SIGHUP`, so the shell does not leave orphaned work behind.
