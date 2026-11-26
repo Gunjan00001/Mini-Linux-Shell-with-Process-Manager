@@ -9,10 +9,11 @@ from feature to interface.
 | `execvp()` | `executor/executor.cpp` | replace the child image, search `PATH` |
 | `waitpid()` | `executor`, `job_manager` | synchronize with children, collect exit/stop status, reap zombies |
 | `pipe()` | `executor` | connect stdout of stage *i* to stdin of stage *i+1* |
-| `dup2()` | `ipc`, `executor` | move pipe ends and files onto fd 0/1 and 2 |
+| `dup2()` | `ipc`, `executor` | move pipe ends and files onto fd 0/1 (stdin/stdout) |
 | `open()` | `ipc` | open `<`, `>`, `>>` targets (`O_RDONLY`, `O_TRUNC`, `O_APPEND`) |
 | `close()` | `ipc`, `executor`, `signals` | release unused pipe ends and files in parent and child |
 | `kill()` | `executor`, `job_manager` | `kill` builtin, `fg`/`bg` (`SIGCONT`), exit cleanup (`SIGHUP`) |
+| `killpg()` | `executor`, `job_manager` | signal every stage of a job through its process group |
 | `sigaction()` | `signals` | install `SIGCHLD`/`SIGINT` handlers and restore `SIG_DFL` in children |
 | `signal()` | `signals` | ignore `SIGQUIT`, `SIGTSTP`, `SIGTTIN`, `SIGTTOU` in the shell |
 | `setpgid()` | `executor`, `terminal` | put jobs in their own process group |
@@ -47,7 +48,7 @@ because the `comm` field is allowed to contain spaces and parentheses.
 | Signal | Shell | Child |
 |---|---|---|
 | `SIGCHLD` | handler writes to self-pipe; main loop reaps | reset to default |
-| `SIGINT` | ignored by the shell (Ctrl+C must not kill it) | default: terminate |
+| `SIGINT` | handler writes to self-pipe; prompt loop drops partial input and redraws | default: terminate |
 | `SIGQUIT` | ignored | default |
 | `SIGTSTP` | ignored (terminal goes to the job) | default: stop |
 | `SIGTTIN`/`SIGTTOU` | ignored (needed for `tcsetpgrp`) | default |
