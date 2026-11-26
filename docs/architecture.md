@@ -86,22 +86,25 @@ touches the OS; the executor never re-parses strings.
 
 ### Foreground command
 
-1. `run_builtin` handles the six-plus builtins in-process (`cd` must change the
-   shell's own cwd).
+1. `run_builtin` handles the twelve builtins in-process (`cd` must change the
+   shell's own cwd). Builtins are only considered for a single-stage line,
+   because a pipeline stage would run in a child.
 2. Otherwise `fork()`; the child resets signal dispositions, creates a new
    process group (when job control is available), wires pipe/redirection fds,
    then `execvp()`.
 3. The parent closes unused pipe ends, gives the terminal to the child's pgid,
    and `waitpid(pid, WUNTRACED)`.
 4. When the child exits or stops, the parent takes the terminal back. A stopped
-   child becomes a `Stopped` job.
+   child becomes a `Stopped` job; for a pipeline, every stage pid is recorded
+   but only one `[n] Stopped` line is printed.
 
 ### Pipeline
 
 One `pipe()` per gap. Stage *i* reads from the previous pipe read end and writes
 to the next pipe write end. Both ends the stage does not use are closed before
 `execvp()`, so EOF propagates correctly. The foreground waiter waits for every
-stage.
+stage; if one stops, the group is stopped as a unit, so it records all stage
+pids and returns after the first stop.
 
 ### Background job
 
@@ -115,7 +118,9 @@ finished children and prints `[n] Done ...` notices.
 The `SIGCHLD` handler writes one byte to a pipe. The shell's `select()` waits on
 stdin *and* that pipe, so completion notices appear while the user is idle at
 the prompt without doing unsafe work in the handler. All `waitpid()` calls and
-container updates happen in normal code.
+container updates happen in normal code. `SIGINT` uses the same pipe: when the
+line reader drains a SIGINT byte it drops any partial input and redraws the
+prompt.
 
 ### Job control
 
@@ -123,8 +128,10 @@ With a tty, the shell puts itself in its own process group and hands terminal
 ownership (`tcsetpgrp`) to the foreground job's process group. Ctrl+C and
 Ctrl+Z therefore reach the job, not the shell. `fg` re-grants the terminal and
 sends `SIGCONT`; `bg` only sends `SIGCONT`, leaving the job in the background.
-Without a tty, the shell skips all of this and children share its group — the
-behavior of a non-interactive shell.
+Ctrl+C at the prompt reaches the shell through the SIGINT self-pipe instead,
+which is why the shell stays alive and redraws the prompt. Without a tty, the
+shell skips all of this and children share its group — the behavior of a
+non-interactive shell.
 
 ### Monitoring
 
