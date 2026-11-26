@@ -49,6 +49,9 @@ pipe commands into the same binary.
 | Missing history entry | `!99` | PASS, `!99: event not found` |
 | History index overflow | `!99999999999999999999` | PASS, `event not found`, no crash |
 | Background pipeline group | `sleep 30 \| sleep 40 &`, then `kill %1` | PASS, both stages share one pgid and die together |
+| Prompt Ctrl+C | type `echo partial`, press Ctrl+C, then `echo fresh` | PASS, partial line dropped, fresh prompt, `fresh` runs |
+| Foreground pipeline stop | `sleep 30 \| sleep 40`, then Ctrl+Z | PASS, one `Stopped` notice, `jobs` lists both stage pids |
+| Foreground pipeline resume | `fg 1` after the stop, then Ctrl+C | PASS, both stages resume; the group is interrupted together |
 | Builtin in pipeline | `history \| wc -l` | known limitation: `execvp("history")` fails |
 | Builtin redirection | `jobs > f` | known limitation: output stays on the terminal |
 | Overflowing pid argument | `pinfo 99999999999999999999` | PASS, `pinfo: invalid pid` |
@@ -79,6 +82,9 @@ session images is indexed in [demo_script.md](demo_script.md).
 - Ctrl+C/Ctrl+Z require a real terminal; they are driven through a pseudo
   terminal in `tests/pty_smoke.py`. Piped stdin disables terminal job control by
   design.
+- Ctrl+C at the prompt is a `SIGINT` to the shell itself. The self-pipe wakeup
+  makes the line reader drop the partial line and draw a new prompt; the shell
+  never exits on `SIGINT`.
 - `monitor` output includes every process the user may read. In WSL2 the user
   can read all of them.
 - CPU time shown by `pinfo` is cumulative (`utime + stime`); the `CPU now` line
