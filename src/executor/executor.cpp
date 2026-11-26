@@ -74,6 +74,8 @@ bool Executor::run(const ParsedLine& line, const std::string& raw) {
     }
     if (line.stages.empty()) return true;
 
+    // Builtins only make sense as the whole line. In a pipeline they would run
+    // in a forked child, so `cd /tmp | cat` could not change the shell's cwd.
     if (line.stages.size() == 1) {
         bool handled = false;
         const bool keep_running = run_builtin(line, handled);
@@ -218,6 +220,9 @@ bool Executor::run_builtin(const ParsedLine& line, bool& handled) {
 void Executor::run_external(const ParsedLine& line, const std::string& raw) {
     const size_t count = line.stages.size();
     const bool jc = terminal::active();
+    // Background jobs always get a group so terminal signals cannot reach them.
+    // Foreground jobs need one only when there is a tty to hand over; a
+    // non-interactive shell deliberately leaves children in its own group.
     const bool own_group = line.background || jc;
     // The job table shows the command without the trailing '&'.
     std::string display = raw;
@@ -240,7 +245,10 @@ void Executor::run_external(const ParsedLine& line, const std::string& raw) {
         if (pid == 0) {
             signals::reset_in_child();
             // Every stage joins stage 0's group so the job can be signalled,
-            // resumed and handed the terminal as one unit.
+            // resumed and handed the terminal as one unit. The parent repeats
+            // this call below: whichever side runs first creates the group, and
+            // doing it on both sides closes the window where a signal could
+            // arrive before the child has joined it. The second call is a no-op.
             if (own_group) ::setpgid(0, i == 0 ? 0 : pids.front());
 
             if (prev_read != -1) {
@@ -263,7 +271,7 @@ void Executor::run_external(const ParsedLine& line, const std::string& raw) {
             ::execvp(c.program.c_str(), argv.data());
             std::fprintf(stderr, "minishell: %s: %s\n", c.program.c_str(),
                          std::strerror(errno));
-            ::_exit(127);
+            ::_exit(127);  // conventional "command not found / not executable"
         }
         if (pid < 0) {
             std::perror("minishell: fork");
@@ -273,10 +281,13 @@ void Executor::run_external(const ParsedLine& line, const std::string& raw) {
             }
             break;
         }
+        // Mirror the child's setpgid call; see the comment in the child branch.
         if (own_group) ::setpgid(pid, pids.empty() ? pid : pids.front());
         if (jc && !line.background && job_pgid == 0) job_pgid = pid;
 
         pids.push_back(pid);
+        // Parent keeps only the read end of the pipe it just created. Closing
+        // the write end here is what lets the next stage eventually see EOF.
         if (prev_read != -1) ::close(prev_read);
         if (has_next) ::close(pipefd[1]);
         prev_read = has_next ? pipefd[0] : -1;
@@ -297,6 +308,9 @@ void Executor::run_external(const ParsedLine& line, const std::string& raw) {
 }
 
 void Executor::wait_foreground(const std::vector<pid_t>& pids, const std::string& raw) {
+    // Wait for every stage in order. WUNTRACED makes Ctrl+Z visible as a stop
+    // rather than making waitpid() block until the process exits. A pipeline
+    // stops as one group, so the first stopped stage ends the scan.
     for (pid_t pid : pids) {
         int status = 0;
         pid_t rc;
