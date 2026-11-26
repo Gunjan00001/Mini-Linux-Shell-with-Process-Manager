@@ -9,8 +9,9 @@ void install();
 // Read end of the self-pipe (blocking select target). -1 if setup failed.
 int notify_fd();
 
-// Drains pending signal bytes (non-blocking).
-void drain_notifications();
+// Drains pending signal bytes (non-blocking). Returns true if a SIGINT
+// arrived, so the prompt loop can redraw after Ctrl+C.
+bool drain_notifications();
 
 // Restores default signal dispositions and closes pipe fds. Called in the
 // child right after fork(), before execvp().

@@ -59,11 +59,17 @@ void install() {
 
 int notify_fd() { return g_pipe[0]; }
 
-void drain_notifications() {
-    if (g_pipe[0] == -1) return;
+bool drain_notifications() {
+    if (g_pipe[0] == -1) return false;
+    bool got_int = false;
     unsigned char buf[64];
-    while (::read(g_pipe[0], buf, sizeof buf) > 0) {
+    ssize_t n = 0;
+    while ((n = ::read(g_pipe[0], buf, sizeof buf)) > 0) {
+        for (ssize_t i = 0; i < n; ++i) {
+            if (buf[i] == SIGINT) got_int = true;
+        }
     }
+    return got_int;
 }
 
 void reset_in_child() {
