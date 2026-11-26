@@ -16,6 +16,9 @@ ParsedLine parse_line(const std::string& line) {
     ParsedLine out;
 
     // ---- tokenize: whitespace splits, quotes group, operators stand alone ----
+    // `in_token` survives an empty quoted argument (`echo ""`), so the empty
+    // string is emitted instead of disappearing with the surrounding spaces.
+    // Quotes are removed here; later stages only see the final argument bytes.
     std::vector<std::string> tokens;
     std::string cur;
     bool in_token = false;
@@ -28,6 +31,8 @@ ParsedLine parse_line(const std::string& line) {
                 quote = 0;
             } else if (c == '\\' && quote == '"' && i + 1 < line.size() &&
                        (line[i + 1] == '"' || line[i + 1] == '\\')) {
+                // Inside double quotes only \" and \\ are escapes; every other
+                // backslash is literal. Single quotes have no escapes at all.
                 cur += line[++i];
             } else {
                 cur += c;
@@ -95,6 +100,8 @@ ParsedLine parse_line(const std::string& line) {
             }
             out.background = true;
         } else if (t == "<" || t == ">" || t == ">>") {
+            // Redirections belong to the stage being built. Repeating one
+            // overwrites the target, so the last file wins (as in bash).
             if (i + 1 >= tokens.size() || is_op_token(tokens[i + 1])) {
                 out.ok = false;
                 out.error = "missing filename after '" + t + "'";
@@ -108,6 +115,8 @@ ParsedLine parse_line(const std::string& line) {
                 cmd.append = (t == ">>");
             }
         } else if (cmd.program.empty()) {
+            // First non-operator token is the program; everything after it is
+            // argv, even if it starts with '-'.
             cmd.program = t;
         } else {
             cmd.args.push_back(t);
