@@ -15,6 +15,9 @@
 
 void Shell::run() {
     while (true) {
+        // Reap before drawing the prompt: a job that finished while the last
+        // command ran should print its Done notice above the new prompt, not
+        // in the middle of the user's next line.
         std::vector<std::string> notices;
         exec_.jobs().reap(notices);
         for (const std::string& n : notices) std::cout << n << "\n";
@@ -56,6 +59,8 @@ void Shell::run() {
 }
 
 std::string Shell::prompt() const {
+    // USER/HOME are inherited from the parent environment; missing values get
+    // harmless fallbacks so the prompt cannot throw or print "(null)".
     const char* user = std::getenv("USER");
     if (!user) user = "user";
 
@@ -63,6 +68,8 @@ std::string Shell::prompt() const {
     std::string dir = ::getcwd(buf, sizeof buf) ? buf : "?";
     const char* home = std::getenv("HOME");
     if (home) {
+        // Display-only shortcut: `/home/me/work` becomes `~/work`. The real cwd
+        // is never changed; `pwd` still prints the full path.
         const size_t len = std::strlen(home);
         if (dir.compare(0, len, home) == 0) dir = "~" + dir.substr(len);
     }
@@ -83,6 +90,10 @@ bool Shell::read_line(std::string& out) {
             maxfd = std::max(maxfd, sig_fd);
         }
 
+        // Wait on stdin and the self-pipe together. A plain blocking read()
+        // would not notice a background job finishing until the user pressed
+        // Enter, which is exactly how shells end up printing Done at the wrong
+        // moment.
         const int ready = ::select(maxfd + 1, &rfds, nullptr, nullptr, nullptr);
         if (ready < 0) {
             if (errno == EINTR) continue;
@@ -111,9 +122,12 @@ bool Shell::read_line(std::string& out) {
 
         if (!FD_ISSET(STDIN_FILENO, &rfds)) continue;
 
+        // Read one byte at a time: the loop must return to select() often enough
+        // to service the signal pipe. No line editing or echo control here; the
+        // terminal's canonical mode does the echoing.
         char c = 0;
         const ssize_t n = ::read(STDIN_FILENO, &c, 1);
-        if (n == 0) return false;  // Ctrl+D
+        if (n == 0) return false;  // Ctrl+D: EOF -> leave the shell
         if (n < 0) {
             if (errno == EINTR) continue;
             return false;
