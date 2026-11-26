@@ -1,7 +1,20 @@
 # Demo Script (5–8 minutes)
 
-Record in a real terminal (not via pipes — job control needs a tty).
+Record in a real terminal (not via pipes, because job control needs a tty).
 Terminal font large enough to read; clear the screen between sections.
+
+## Captured screenshots
+
+The images in `screenshots/` were captured from the running shell through a
+pseudo terminal, following the flow below. They are also embedded in the README,
+the PPT and the report.
+
+| Session | Image |
+|---|---|
+| Quick start: execution, pipes, redirection and history | [quick_start.png](screenshots/quick_start.png) |
+| Jobs and signals: Ctrl+Z, bg, fg and Ctrl+C | [job_control.png](screenshots/job_control.png) |
+| Process monitor: ps and pinfo reading /proc | [monitor.png](screenshots/monitor.png) |
+| Test run: CTest and the pty smoke suite | [tests.png](screenshots/tests.png) |
 
 ## 1. Build (30 s)
 
