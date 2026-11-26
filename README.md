@@ -194,8 +194,11 @@ fg 1                                  -> brings it back; Ctrl+C stops it
 ```
 
 Ctrl+C interrupts only the foreground job; the shell stays alive. Ctrl+Z stops
-it and `jobs` shows it as `Stopped`. This needs a real terminal: when stdin is a
-pipe the shell deliberately skips terminal job control.
+it and `jobs` shows it as `Stopped`. A stopped pipeline appears as one job with
+every stage pid, and `fg` resumes the whole group. Ctrl+C while typing at the
+prompt discards the partial line and draws a fresh prompt. This needs a real
+terminal: when stdin is a pipe the shell deliberately skips terminal job
+control.
 
 ### Monitoring
 
