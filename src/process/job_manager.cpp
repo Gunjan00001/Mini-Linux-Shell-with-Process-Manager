@@ -19,6 +19,8 @@ const char* state_name(JobState s) {
 
 }  // namespace
 
+// Ids are never reused within a session, so `fg 1` cannot silently target a
+// different job after the first one finishes.
 int JobManager::add(std::vector<pid_t> pids, const std::string& command) {
     Job j;
     j.id = next_id_++;
@@ -29,6 +31,9 @@ int JobManager::add(std::vector<pid_t> pids, const std::string& command) {
     return jobs_.back().id;
 }
 
+// Drain every child that changed state without blocking. WUNTRACED reports
+// Ctrl+Z, WCONTINUED reports `bg`/`fg`; without them the job table would only
+// learn about exits. Safe only from normal code, never from the SIGCHLD handler.
 void JobManager::reap(std::vector<std::string>& notices) {
     while (true) {
         int status = 0;
@@ -81,6 +86,8 @@ void JobManager::erase(int id) {
                 jobs_.end());
 }
 
+// Best-effort cleanup on shell exit. The job may have exited between the last
+// reap and now, so kill errors are deliberately ignored.
 void JobManager::terminate_all() {
     for (const Job& j : jobs_) {
         if (j.pids.empty()) continue;
