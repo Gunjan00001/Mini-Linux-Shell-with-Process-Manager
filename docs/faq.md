@@ -41,6 +41,13 @@ Job control is only enabled when stdin is a terminal (`isatty`). Piped input,
 CI runners and some IDE consoles are not terminals, so the shell runs as a
 non-interactive shell on purpose.
 
+**Why does Ctrl+C at the prompt print a new prompt instead of exiting?**
+The shell installs its own `SIGINT` handler; the handler only writes a byte to
+the self-pipe. The line reader wakes on that byte, throws away whatever partial
+line was typed, and draws a fresh prompt. Ctrl+C while a job is in the
+foreground never reaches the shell, because the terminal belongs to the job's
+process group.
+
 **How do I see the demo without installing?**
 Read `docs/test_cases.md` for recorded results and `docs/demo_script.md` for the
 exact command sequence used in the video.
