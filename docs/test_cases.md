@@ -67,6 +67,13 @@ pipe commands into the same binary.
 | fd leak check | 15x `ls \| wc -l`, compare `/proc/<shell>/fd` | 7 before, 7 after |
 | Clean rebuild | delete `build/`, rerun cmake + make | PASS, no warnings |
 
+## Screenshot
+
+![Test run](screenshots/tests.png)
+
+Captured from a local `ctest` run and `tests/pty_smoke.py`. The full set of
+session images is indexed in [demo_script.md](demo_script.md).
+
 ## Notes
 
 - Ctrl+C/Ctrl+Z require a real terminal; they are driven through a pseudo
