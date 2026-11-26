@@ -7,3 +7,5 @@ cmake-build-*/
 .vscode/
 .idea/
 *.log
+node_modules/
+brag-output/
