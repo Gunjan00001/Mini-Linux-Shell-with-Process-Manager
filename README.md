@@ -10,6 +10,18 @@ process monitor that reads the Linux `/proc` filesystem.
 It is a teaching-grade shell, not a bash replacement. The goal is to show every
 mechanism instead of hiding it behind a library.
 
+## Screenshots
+
+Real sessions captured through a pseudo terminal while the shell was running:
+
+| Quick start | Jobs and signals |
+|---|---|
+| ![Quick start](docs/screenshots/quick_start.png) | ![Job control](docs/screenshots/job_control.png) |
+
+| Process monitor | Test run |
+|---|---|
+| ![Process monitor](docs/screenshots/monitor.png) | ![Test run](docs/screenshots/tests.png) |
+
 ```text
 gunjan@minishell:~$ ls | grep txt
 notes.txt
@@ -278,5 +290,6 @@ install.sh              one-line installer
 - [Viva questions and answers](docs/viva_qa.md)
 - [FAQ](docs/faq.md)
 - [Demo recording script](docs/demo_script.md)
+- [Screenshots](docs/screenshots/)
 - [Development rules](RULES.md)
 - [Work log](LOGS.md)
