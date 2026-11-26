@@ -10,6 +10,8 @@ process monitor that reads the Linux `/proc` filesystem.
 It is a teaching-grade shell, not a bash replacement. The goal is to show every
 mechanism instead of hiding it behind a library.
 
+Latest tagged release: [`v1.1.2`](https://github.com/Gunjan00001/Mini-Linux-Shell-with-Process-Manager/releases/tag/v1.1.2).
+
 ## Screenshots
 
 Real sessions captured through a pseudo terminal while the shell was running:
