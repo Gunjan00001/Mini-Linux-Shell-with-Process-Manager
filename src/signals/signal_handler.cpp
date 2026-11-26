@@ -17,12 +17,17 @@ void on_signal(int sig) {
     (void)rc;
 }
 
+// Both ends are non-blocking so neither the handler nor the drain can stall.
+// CLOEXEC keeps the pipe out of every program the shell execs.
 void make_nonblocking_cloexec(int fd) {
     int fl = ::fcntl(fd, F_GETFL, 0);
     if (fl >= 0) ::fcntl(fd, F_SETFL, fl | O_NONBLOCK);
     ::fcntl(fd, F_SETFD, FD_CLOEXEC);
 }
 
+// One handler for both signals: the byte written through the pipe identifies
+// which one fired. SA_RESTART resumes interrupted reads/waits where possible;
+// the code still retries EINTR explicitly for the cases it cannot.
 void set_handler(int sig) {
     struct sigaction sa {};
     sa.sa_handler = on_signal;
@@ -64,6 +69,8 @@ bool drain_notifications() {
     bool got_int = false;
     unsigned char buf[64];
     ssize_t n = 0;
+    // Non-blocking read until EAGAIN: several signals can arrive between two
+    // select() wakeups, and standard signals may coalesce into one byte.
     while ((n = ::read(g_pipe[0], buf, sizeof buf)) > 0) {
         for (ssize_t i = 0; i < n; ++i) {
             if (buf[i] == SIGINT) got_int = true;
@@ -72,6 +79,9 @@ bool drain_notifications() {
     return got_int;
 }
 
+// Reset every disposition the shell changed, otherwise exec keeps SIG_IGN or
+// the self-pipe handler alive in the new program. The pipe fds are closed here
+// too; CLOEXEC would cover exec, but _exit() paths never reach it.
 void reset_in_child() {
     struct sigaction dfl {};
     dfl.sa_handler = SIG_DFL;
