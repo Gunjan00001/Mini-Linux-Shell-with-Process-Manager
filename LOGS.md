@@ -114,23 +114,24 @@ with a real Linux toolchain (WSL2 Ubuntu 24.04, g++ 13.3, cmake 3.28).
 - `docs/demo_script.md`: the exact recording sequence for the submission video,
   including the Ctrl+C/Ctrl+Z/bg/fg segment and the CPU sample.
 
-## 2026-11-25 — Second bug hunt (v1.1.2)
+## 2026-11-23 — Install path and documentation overhaul
 
-Fuzzed 29 hostile inputs (unbalanced quotes, operator-only lines, overflow pids,
-`kill 0`, `kill -1`, a 100 KB argument, an 81-stage pipeline). No crashes. Fixes
-for the divergences found:
-
-- `kill -9 pid` / `kill -KILL %job` now work; the leading `-` was previously
-  parsed as part of the pid and rejected. Plain `kill pid [sig]` is unchanged.
-- Ctrl+Z on a multi-stage foreground pipeline recorded only the first stage in
-  the job table. `wait_foreground` now stores every pipeline pid, so `jobs`
-  shows `PID: 459,460` and `fg` waits for the whole job. Verified: stopped
-  pipeline is fully cleaned up on exit.
-- `monitor` scanned `/proc` twice per invocation (once for the task count, once
-  for the table). One scan now feeds both.
-- Documented instead of changed: no stderr (`2>`) redirection, and backslashes
-  are literal outside quotes. Both are parser-scope decisions, listed in
-  README Limitations and `docs/test_cases.md`.
+- `install.sh`: clone into `~/.local/src`, Release build, install to
+  `~/.local/bin`. No sudo, refuses non-Linux with a WSL2 pointer, prints the
+  PATH line when needed, supports `--uninstall`. Tested end to end against the
+  GitHub remote with a throwaway `HOME` (clone → build → run → uninstall).
+- README rewritten as a user document, not a project note: requirements with
+  WSL2 instructions, three install routes (curl one-liner, prebuilt release
+  binary, git clone), quick start, full syntax/builtin/job-control/monitoring
+  usage, troubleshooting table, uninstall, limitations, docs index.
+- Prebuilt `minishell-linux-x86_64` built with `-static-libstdc++
+  -static-libgcc`; `ldd` shows only libc, so it runs on any modern x86_64 glibc
+  distro. Attached to the `v1.1.0` GitHub release.
+- `docs/faq.md`: why no npm/pip/brew, Windows/macOS behavior, why raw syscalls,
+  non-tty job control, CPU sampling.
+- Deliberately not done: Homebrew tap, AUR/PPA packaging, self-hosted package
+  repository. They need maintainer accounts and periodic rebuilds; the curl
+  installer covers the same need without that upkeep.
 
 ## 2026-11-25 — Bug hunt and fixes (v1.1.1)
 
@@ -165,24 +166,48 @@ Documented instead of "fixed": builtins ignore redirection and cannot run
 inside pipelines; both are consequences of running builtins in the shell
 process and are now listed in README Limitations and `docs/test_cases.md`.
 
-## 2026-11-23 — Install path and documentation overhaul
+## 2026-11-25 — Second bug hunt (v1.1.2)
 
-- `install.sh`: clone into `~/.local/src`, Release build, install to
-  `~/.local/bin`. No sudo, refuses non-Linux with a WSL2 pointer, prints the
-  PATH line when needed, supports `--uninstall`. Tested end to end against the
-  GitHub remote with a throwaway `HOME` (clone → build → run → uninstall).
-- README rewritten as a user document, not a project note: requirements with
-  WSL2 instructions, three install routes (curl one-liner, prebuilt release
-  binary, git clone), quick start, full syntax/builtin/job-control/monitoring
-  usage, troubleshooting table, uninstall, limitations, docs index.
-- Prebuilt `minishell-linux-x86_64` built with `-static-libstdc++
-  -static-libgcc`; `ldd` shows only libc, so it runs on any modern x86_64 glibc
-  distro. Attached to the `v1.1.0` GitHub release.
-- `docs/faq.md`: why no npm/pip/brew, Windows/macOS behavior, why raw syscalls,
-  non-tty job control, CPU sampling.
-- Deliberately not done: Homebrew tap, AUR/PPA packaging, self-hosted package
-  repository. They need maintainer accounts and periodic rebuilds; the curl
-  installer covers the same need without that upkeep.
+Fuzzed 29 hostile inputs (unbalanced quotes, operator-only lines, overflow pids,
+`kill 0`, `kill -1`, a 100 KB argument, an 81-stage pipeline). No crashes. Fixes
+for the divergences found:
+
+- `kill -9 pid` / `kill -KILL %job` now work; the leading `-` was previously
+  parsed as part of the pid and rejected. Plain `kill pid [sig]` is unchanged.
+- Ctrl+Z on a multi-stage foreground pipeline recorded only the first stage in
+  the job table. `wait_foreground` now stores every pipeline pid, so `jobs`
+  shows `PID: 459,460` and `fg` waits for the whole job. Verified: stopped
+  pipeline is fully cleaned up on exit.
+- `monitor` scanned `/proc` twice per invocation (once for the task count, once
+  for the table). One scan now feeds both.
+- Documented instead of changed: no stderr (`2>`) redirection, and backslashes
+  are literal outside quotes. Both are parser-scope decisions, listed in
+  README Limitations and `docs/test_cases.md`.
+
+## 2026-11-26 — Documentation, screenshots and comment pass
+
+Two interactive fixes landed with the documentation work:
+
+- `90d8615` + `948b123`: Ctrl+C at the prompt now reports SIGINT through the
+  self-pipe; the line reader drops the partial line and redraws the prompt.
+- `a53d137`: a stopped multi-stage pipeline prints one `Stopped` notice instead
+  of one per stage, while still recording every pid for `fg`.
+
+Documentation and comments:
+
+- Captured four real pty sessions (quick start, job control, monitor, tests)
+  into `docs/screenshots/` and embedded them in README, the demo script and
+  the test-case record.
+- Added "why" comments where the code alone is hard to read: parser tokenizer
+  states, executor pipeline/process-group wiring, terminal handoff, self-pipe
+  lifecycle, `/proc` stat offsets, redirection fd sequence, history bounds,
+  job ids/reaping, and the select-driven prompt.
+- Corrected stale docs: LOGS is back in chronological order, the old "CPU
+  sampling is future work" and "add CI" notes are gone, the syscall table no
+  longer implies stderr redirection, and viva Q12/Q29 plus new Q30/Q31 match
+  the current behavior.
+- Verification: Release build clean in WSL, `ctest` 2/2, and
+  `tests/pty_smoke.py` passes with the Ctrl+C prompt step.
 
 ## Versioning meaning (clarified)
 
@@ -194,7 +219,7 @@ The third number counts **bug fixes**, not releases: `vMAJOR.MINOR.BUGFIX`.
 
 - Line editing / history navigation / tab completion.
 - Environment expansion, globbing, `&&`, `||`, `;`, subshells.
-- Sampled CPU utilization and a web dashboard (future work per spec).
+- A web dashboard or background monitoring daemon.
 - Persistent history, config file, custom prompt variables.
 
 These are listed in `README.md` under Limitations so the boundary is explicit
@@ -202,6 +227,7 @@ in the viva.
 
 ## Next steps
 
-- Add a CI workflow (build + unit tests on ubuntu-latest) if the repository is
-  used for grading.
-- Optional: two-snapshot CPU% in `pinfo` when a 100 ms window is acceptable.
+- Optional: readline-style line editing and prompt redraw around background
+  output (the remaining interactive gap).
+- Optional: build and attach `minishell-linux-x86_64` from CI so a release
+  binary never depends on a local WSL build.
