@@ -1,0 +1,38 @@
+<!DOCTYPE html><html><head><style>
+html { background: #14181d; }
+body { width: 720pt; height: 405pt; margin: 0; padding: 0; background: #14181d;
+       font-family: Arial, sans-serif; color: #edeff2; display: flex; flex-direction: column; }
+.bar { background: #1f2933; padding: 16pt 30pt 12pt 30pt; border-bottom: 4pt solid #4e9f3d; }
+.bar h1 { margin: 0; font-size: 22pt; color: #edeff2; }
+.bar p { margin: 2pt 0 0 0; font-size: 10pt; color: #98acb5; }
+.content { padding: 16pt 34pt; display: flex; flex-direction: column; flex: 1; }
+h2 { font-size: 15pt; color: #4e9f3d; margin: 0 0 6pt 0; }
+p { margin: 4pt 0; font-size: 12.5pt; line-height: 1.35; }
+ul { margin: 4pt 0 0 0; padding-left: 16pt; }
+li { font-size: 12.5pt; line-height: 1.45; margin-bottom: 4pt; }
+.mono { font-family: 'Courier New', monospace; color: #7ec98f; }
+.dim { color: #98acb5; }
+.code { background: #0c0f12; border: 1pt solid #2e3d46; border-radius: 6pt; padding: 10pt 14pt;
+        font-family: 'Courier New', monospace; }
+.code p { font-family: 'Courier New', monospace; font-size: 11pt; color: #b9e4a6; margin: 3pt 0; }
+.col { display: flex; flex-direction: row; gap: 18pt; }
+.panel { background: #1f2933; border-radius: 8pt; padding: 12pt 16pt; flex: 1; }
+.panel h2 { margin-top: 0; }
+.box { background: #1f2933; border: 1pt solid #3a4a54; border-radius: 6pt; padding: 8pt 10pt; }
+.arrow { font-size: 13pt; color: #4e9f3d; padding: 0 2pt; }
+.foot { padding: 0 34pt 10pt 34pt; display: flex; flex-direction: row; justify-content: space-between; }
+.foot p { font-size: 8.5pt; color: #5c6f7a; }
+.shot { width: 100%; border-radius: 6pt; }
+</style></head><body>
+<div class="bar"><h1>Key Design: Process Creation</h1><p>fork / execvp / waitpid, the heart of every shell</p></div>
+<div class="content"><ol>
+ <li><b><span class="mono">fork()</span></b>: child resets signal dispositions, joins its own process group (<span class="mono">setpgid</span>)</li>
+ <li><b>Wire fds</b>: pipe ends and redirection files moved onto fd 0/1 with <span class="mono">dup2</span>; unused ends <span class="mono">close</span>d</li>
+ <li><b><span class="mono">execvp()</span></b>: child image replaced, searched on <span class="mono">PATH</span>; failure exits with status 127</li>
+ <li><b>Parent</b>: closes its pipe ends, hands the terminal to the child's pgid, waits with <span class="mono">waitpid(pid, WUNTRACED)</span></li>
+ <li><b>Take back</b>: shell reclaims the terminal; a stopped child becomes a <span class="mono">Stopped</span> job</li>
+</ol>
+<div class="code" style="margin-top: 8pt;"><p>Pipeline: one <span class="mono">pipe()</span> per gap; each stage reads the previous stage and writes the next</p>
+<p>Unused ends closed before <span class="mono">execvp</span>, so EOF propagates correctly through the pipeline</p></div></div>
+<div class="foot"><p style="width: 170pt;">Process Creation</p><p style="width: 170pt; text-align: right;">[Student Name] &bull; [Roll No]</p></div>
+</body></html>

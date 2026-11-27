@@ -1,0 +1,49 @@
+<!DOCTYPE html><html><head><style>
+html { background: #14181d; }
+body { width: 720pt; height: 405pt; margin: 0; padding: 0; background: #14181d;
+       font-family: Arial, sans-serif; color: #edeff2; display: flex; flex-direction: column; }
+.bar { background: #1f2933; padding: 16pt 30pt 12pt 30pt; border-bottom: 4pt solid #4e9f3d; }
+.bar h1 { margin: 0; font-size: 22pt; color: #edeff2; }
+.bar p { margin: 2pt 0 0 0; font-size: 10pt; color: #98acb5; }
+.content { padding: 16pt 34pt; display: flex; flex-direction: column; flex: 1; }
+h2 { font-size: 15pt; color: #4e9f3d; margin: 0 0 6pt 0; }
+p { margin: 4pt 0; font-size: 12.5pt; line-height: 1.35; }
+ul { margin: 4pt 0 0 0; padding-left: 16pt; }
+li { font-size: 12.5pt; line-height: 1.45; margin-bottom: 4pt; }
+.mono { font-family: 'Courier New', monospace; color: #7ec98f; }
+.dim { color: #98acb5; }
+.code { background: #0c0f12; border: 1pt solid #2e3d46; border-radius: 6pt; padding: 10pt 14pt;
+        font-family: 'Courier New', monospace; }
+.code p { font-family: 'Courier New', monospace; font-size: 11pt; color: #b9e4a6; margin: 3pt 0; }
+.col { display: flex; flex-direction: row; gap: 18pt; }
+.panel { background: #1f2933; border-radius: 8pt; padding: 12pt 16pt; flex: 1; }
+.panel h2 { margin-top: 0; }
+.box { background: #1f2933; border: 1pt solid #3a4a54; border-radius: 6pt; padding: 8pt 10pt; }
+.arrow { font-size: 13pt; color: #4e9f3d; padding: 0 2pt; }
+.foot { padding: 0 34pt 10pt 34pt; display: flex; flex-direction: row; justify-content: space-between; }
+.foot p { font-size: 8.5pt; color: #5c6f7a; }
+.shot { width: 100%; border-radius: 6pt; }
+</style></head><body>
+<div class="bar"><h1>Module Breakdown</h1><p>9 small components, one clear job each</p></div>
+<div class="content"><div class="col">
+ <div class="panel" style="flex: 1;">
+  <ul>
+   <li><b>Shell loop</b>: <span class="mono">shell/</span>, prompt, select driven line reader</li>
+   <li><b>Parser</b>: <span class="mono">parser/</span>, quotes, |, &lt;, &gt;, &gt;&gt;, &amp; &rarr; <span class="mono">ParsedLine</span></li>
+   <li><b>Executor</b>: <span class="mono">executor/</span>, builtin dispatch, fork/exec pipelines</li>
+   <li><b>Job table</b>: <span class="mono">process/</span>, job ids, states, reaping, SIGHUP at exit</li>
+   <li><b>Terminal</b>: <span class="mono">process/</span>, shell pgid, <span class="mono">tcsetpgrp</span> handoff</li>
+  </ul>
+ </div>
+ <div class="panel" style="flex: 1;">
+  <ul>
+   <li><b>IPC</b>: <span class="mono">ipc/</span>, <span class="mono">open</span>/<span class="mono">dup2</span>/<span class="mono">close</span> for redirection</li>
+   <li><b>Signals</b>: <span class="mono">signals/</span>, <span class="mono">sigaction</span>, self pipe, child reset</li>
+   <li><b>Monitor</b>: <span class="mono">monitor/</span>, /proc parsing, monitor/ps/pinfo</li>
+   <li><b>History</b>: <span class="mono">history/</span>, in memory command list</li>
+  </ul>
+  <p class="dim" style="margin-top: 8pt;">Data contract: <span class="mono">ParsedLine { stages, background, ok }</span> is the only thing passed parser &rarr; executor.</p>
+ </div>
+</div></div>
+<div class="foot"><p style="width: 170pt;">Modules</p><p style="width: 170pt; text-align: right;">[Student Name] &bull; [Roll No]</p></div>
+</body></html>

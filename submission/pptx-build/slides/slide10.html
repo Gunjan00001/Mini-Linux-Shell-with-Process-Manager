@@ -1,0 +1,44 @@
+<!DOCTYPE html><html><head><style>
+html { background: #14181d; }
+body { width: 720pt; height: 405pt; margin: 0; padding: 0; background: #14181d;
+       font-family: Arial, sans-serif; color: #edeff2; display: flex; flex-direction: column; }
+.bar { background: #1f2933; padding: 16pt 30pt 12pt 30pt; border-bottom: 4pt solid #4e9f3d; }
+.bar h1 { margin: 0; font-size: 22pt; color: #edeff2; }
+.bar p { margin: 2pt 0 0 0; font-size: 10pt; color: #98acb5; }
+.content { padding: 16pt 34pt; display: flex; flex-direction: column; flex: 1; }
+h2 { font-size: 15pt; color: #4e9f3d; margin: 0 0 6pt 0; }
+p { margin: 4pt 0; font-size: 12.5pt; line-height: 1.35; }
+ul { margin: 4pt 0 0 0; padding-left: 16pt; }
+li { font-size: 12.5pt; line-height: 1.45; margin-bottom: 4pt; }
+.mono { font-family: 'Courier New', monospace; color: #7ec98f; }
+.dim { color: #98acb5; }
+.code { background: #0c0f12; border: 1pt solid #2e3d46; border-radius: 6pt; padding: 10pt 14pt;
+        font-family: 'Courier New', monospace; }
+.code p { font-family: 'Courier New', monospace; font-size: 11pt; color: #b9e4a6; margin: 3pt 0; }
+.col { display: flex; flex-direction: row; gap: 18pt; }
+.panel { background: #1f2933; border-radius: 8pt; padding: 12pt 16pt; flex: 1; }
+.panel h2 { margin-top: 0; }
+.box { background: #1f2933; border: 1pt solid #3a4a54; border-radius: 6pt; padding: 8pt 10pt; }
+.arrow { font-size: 13pt; color: #4e9f3d; padding: 0 2pt; }
+.foot { padding: 0 34pt 10pt 34pt; display: flex; flex-direction: row; justify-content: space-between; }
+.foot p { font-size: 8.5pt; color: #5c6f7a; }
+.shot { width: 100%; border-radius: 6pt; }
+</style></head><body>
+<div class="bar"><h1>Process Monitor</h1><p>Reading the kernel’s /proc filesystem</p></div>
+<div class="content"><div class="col">
+ <div class="panel" style="flex: 1.1;">
+  <h2>What we read</h2>
+  <ul>
+   <li><span class="mono">/proc/[pid]/stat</span>: state, PPID, utime/stime, threads, vsize, RSS</li>
+   <li><span class="mono">/proc/[pid]/cmdline</span>: NUL separated argv</li>
+   <li><span class="mono">/proc/meminfo</span>, <span class="mono">/proc/uptime</span>: header summary</li>
+  </ul>
+  <p class="dim" style="margin-top: 6pt;">Parsed <b>after the last )</b> so process names with spaces and parentheses are safe. CPU % = tick delta between two snapshots 200 ms apart.</p>
+ </div>
+ <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+  <img class="shot" src="file:///D:/OS%20project/docs/screenshots/monitor.png" style="width: 305pt; height: 191pt;"/>
+  <p class="dim" style="font-size: 9pt; margin-top: 5pt;">pinfo output: live data from a running process</p>
+ </div>
+</div></div>
+<div class="foot"><p style="width: 170pt;">Monitor</p><p style="width: 170pt; text-align: right;">[Student Name] &bull; [Roll No]</p></div>
+</body></html>

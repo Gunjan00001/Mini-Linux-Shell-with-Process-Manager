@@ -1,0 +1,22 @@
+[
+  {
+    "name": "quick_start",
+    "title": "minishell  |  quick start",
+    "text": "gunjan@minishell:~/minishell-demo$ ls\nREADME\tbuild.log  minishell  notes.txt  report.txt  todo.txt\ngunjan@minishell:~/minishell-demo$ ls | grep txt | wc -l\n3\ngunjan@minishell:~/minishell-demo$ echo \"Hello World\"\nHello World\ngunjan@minishell:~/minishell-demo$ echo hi > out.txt\ngunjan@minishell:~/minishell-demo$ cat < out.txt\nhi\ngunjan@minishell:~/minishell-demo$ echo second line >> out.txt\ngunjan@minishell:~/minishell-demo$ cat < out.txt\nhi\nsecond line\ngunjan@minishell:~/minishell-demo$ history\n1  ls\n2  ls | grep txt | wc -l\n3  echo \"Hello World\"\n4  echo hi > out.txt\n5  cat < out.txt\n6  echo second line >> out.txt\n7  cat < out.txt\n8  history\ngunjan@minishell:~/minishell-demo$ "
+  },
+  {
+    "name": "job_control",
+    "title": "minishell  |  jobs and signals",
+    "text": "gunjan@minishell:~/minishell-demo$ sleep 30\n^Z\n[1] Stopped  sleep 30  PID: 422\ngunjan@minishell:~/minishell-demo$ jobs\n[1] Stopped  sleep 30  PID: 422\ngunjan@minishell:~/minishell-demo$ bg 1\nsleep 30\ngunjan@minishell:~/minishell-demo$ jobs\n[1] Running  sleep 30  PID: 422\ngunjan@minishell:~/minishell-demo$ fg 1\nsleep 30\n^Cgunjan@minishell:~/minishell-demo$ echo survived\nsurvived\ngunjan@minishell:~/minishell-demo$ sleep 60 &\n[2] Started  sleep 60  PID: 427\ngunjan@minishell:~/minishell-demo$ jobs\n[2] Running  sleep 60  PID: 427\ngunjan@minishell:~/minishell-demo$ kill %2\nsent signal 15 to job 2\ngunjan@minishell:~/minishell-demo$ \n[2] Done  sleep 60\n"
+  },
+  {
+    "name": "monitor",
+    "title": "minishell  |  process monitor",
+    "text": "gunjan@minishell:~/minishell-demo$ yes > /dev/null &\n[1] Started  yes > /dev/null  PID: 430\ngunjan@minishell:~/minishell-demo$ ps\nPID     PPID    STATE   COMMAND\n------------------------------------------\n430     429     R       yes\ngunjan@minishell:~/minishell-demo$ pinfo 430\n========== PINFO: 430 ==========\nPID:        430\nPPID:       429\nState:      R\nThreads:    1\nCPU time:   0.80 s (user 0.29 s)\nCPU now:    100.0 % (200 ms sample)\nVirtual:    3.1 MB\nResident:   1.6 MB\nName:       yes\nCmdline:    yes\ngunjan@minishell:~/minishell-demo$ kill %1\nsent signal 15 to job 1\ngunjan@minishell:~/minishell-demo$ \n[1] Done  yes > /dev/null\n"
+  },
+  {
+    "name": "tests",
+    "title": "minishell  |  test run",
+    "text": "gunjan@minishell:~/mini-linux-shell$ ctest --test-dir build --output-on-failure | tail -9\nTest project /mnt/d/OS project/build\n    Start 1: parser\n1/2 Test #1: parser ...........................   Passed    0.01 sec\n    Start 2: monitor\n2/2 Test #2: monitor ..........................   Passed    0.00 sec\n\n100% tests passed, 0 tests failed out of 2\n\nTotal Test time (real) =   0.03 sec\ngunjan@minishell:~/mini-linux-shell$ python3 tests/pty_smoke.py | tail -2\n\npty smoke test passed\ngunjan@minishell:~/mini-linux-shell$ "
+  }
+]
